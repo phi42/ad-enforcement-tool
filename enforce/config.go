@@ -14,6 +14,7 @@ import (
 )
 
 var globalFlag bool
+var configFileFlag string
 
 var configCmd = &cobra.Command{
 	Use:   "config",
@@ -35,6 +36,7 @@ Plugin configuration (open namespace, prefix must match the plugin's config_pref
 Examples:
   ade config set defaults.compile.plugin arch-go
   ade config set defaults.compile.input ./docs/adr --global
+  ade config set plugin_configs.netarchtest.test-project ./src/Tests/ArchTests/Project.csproj --file ./ade.moduleA.yaml
   ade config get defaults.compile.plugin
   ade config unset defaults.compile.plugin
   ade config set plugin_configs.fscheck.root-dir ./src
@@ -71,6 +73,8 @@ var configListCmd = &cobra.Command{
 func init() {
 	enforceCmd.AddCommand(configCmd)
 	configCmd.PersistentFlags().BoolVar(&globalFlag, "global", false, "target the global config instead of the project config")
+	configCmd.PersistentFlags().StringVar(&configFileFlag, "file", "", "target a specific config file instead of the default project config")
+	configCmd.MarkFlagsMutuallyExclusive("global", "file")
 	configCmd.AddCommand(configSetCmd)
 	configCmd.AddCommand(configGetCmd)
 	configCmd.AddCommand(configUnsetCmd)
@@ -78,6 +82,9 @@ func init() {
 }
 
 func resolveConfigPath() (string, error) {
+	if configFileFlag != "" {
+		return filepath.Abs(configFileFlag)
+	}
 	if globalFlag {
 		return pluginstore.GlobalConfigPath()
 	}
@@ -86,6 +93,16 @@ func resolveConfigPath() (string, error) {
 		return "", fmt.Errorf("unable to get current directory: %w", err)
 	}
 	return filepath.Join(cwd, domain.CONFIG_FILE_NAME+"."+domain.CONFIG_FILE_EXT), nil
+}
+
+func resolveConfigScope() string {
+	if configFileFlag != "" {
+		return "[" + configFileFlag + "]"
+	}
+	if globalFlag {
+		return "[global]"
+	}
+	return "[project]"
 }
 
 func configSetCommand(cmd *cobra.Command, args []string) {
@@ -106,11 +123,7 @@ func configSetCommand(cmd *cobra.Command, args []string) {
 
 	domain.CheckFatalError(pluginstore.SetDefault(cfgPath, key, value), "setting config value")
 
-	scope := "project"
-	if globalFlag {
-		scope = "global"
-	}
-	fmt.Printf("Set %s = %s [%s]\n", key, value, scope)
+	fmt.Printf("Set %s = %s %s\n", key, value, resolveConfigScope())
 }
 
 func configGetCommand(cmd *cobra.Command, args []string) {
@@ -141,11 +154,7 @@ func configUnsetCommand(cmd *cobra.Command, args []string) {
 
 	domain.CheckFatalError(pluginstore.UnsetDefault(cfgPath, key), "unsetting config value")
 
-	scope := "project"
-	if globalFlag {
-		scope = "global"
-	}
-	fmt.Printf("Unset %s [%s]\n", key, scope)
+	fmt.Printf("Unset %s %s\n", key, resolveConfigScope())
 }
 
 func configListCommand(cmd *cobra.Command, args []string) {
