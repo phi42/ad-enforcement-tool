@@ -2,7 +2,6 @@ package domain
 
 import (
 	"fmt"
-	"log/slog"
 	"os"
 	"path/filepath"
 )
@@ -76,10 +75,9 @@ func tryFindExecutable(dir, name string) string {
 	return ""
 }
 
-// Calls [slog.Error] and exits with code 1 if error is not nil.
 func CheckFatalError(err error, activity string) {
 	if err != nil {
-		slog.Error("fatal error", "activity", activity, "error", err.Error())
+		fmt.Fprintf(os.Stderr, "error: %s: %v\n", activity, err)
 		os.Exit(1)
 	}
 }

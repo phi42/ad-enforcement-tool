@@ -1,7 +1,6 @@
 package enforce
 
 import (
-	"log/slog"
 	"os"
 
 	"github.com/phi42/ad-enforcement-tool/internal/domain"
@@ -14,9 +13,6 @@ import (
 var adeViper = viper.New()
 
 var cfgFile string
-var debugFlag bool
-var quietFlag bool
-var noWarnFlag bool
 var configFileUsed string
 
 var enforceCmd = &cobra.Command{
@@ -25,10 +21,6 @@ var enforceCmd = &cobra.Command{
 	Long:  `Commands for enforcing architectural decisions: validate rule files, compile rules into test artifacts, verify rules against the codebase, and manage plugins and configuration.`,
 	PersistentPreRun: func(cmd *cobra.Command, args []string) {
 		initADEConfig()
-		setupLogger(debugFlag, quietFlag, noWarnFlag)
-		if configFileUsed != "" {
-			slog.Debug("using config file", "path", configFileUsed)
-		}
 	},
 }
 
@@ -41,9 +33,6 @@ func NewEnforceCommand() *cobra.Command {
 func init() {
 	enforceCmd.CompletionOptions.HiddenDefaultCmd = true
 	enforceCmd.PersistentFlags().StringVar(&cfgFile, "config", "", "config file (overrides default hierarchy: global ade.yaml then .ade.yaml in current directory)")
-	enforceCmd.PersistentFlags().BoolVar(&debugFlag, "debug", false, "enable debug output")
-	enforceCmd.PersistentFlags().BoolVar(&quietFlag, "quiet", false, "suppress all output except errors")
-	enforceCmd.PersistentFlags().BoolVar(&noWarnFlag, "no-warnings", false, "suppress warnings, show info and errors")
 }
 
 func initADEConfig() {
@@ -82,18 +71,4 @@ func initADEConfig() {
 	}
 }
 
-func setupLogger(debug, quiet, noWarn bool) {
-	level := slog.LevelInfo
-	skipWarn := noWarn
-	switch {
-	case debug:
-		level = slog.LevelDebug
-		os.Setenv("ADE_LOG_LEVEL", "debug")
-	case quiet:
-		level = slog.LevelError
-		os.Setenv("ADE_LOG_LEVEL", "quiet")
-	case noWarn:
-		os.Setenv("ADE_LOG_LEVEL", "no-warnings")
-	}
-	slog.SetDefault(slog.New(newCLIHandler(os.Stderr, level, skipWarn)))
-}
+

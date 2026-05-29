@@ -4,7 +4,6 @@ import (
 	"bytes"
 	"encoding/json"
 	"fmt"
-	"log/slog"
 	"os"
 	"os/exec"
 
@@ -67,7 +66,6 @@ func CompileSpec(path string) (*rule.SpecIR, error) {
 	if err != nil {
 		return nil, fmt.Errorf("parsing %s: %w", path, err)
 	}
-	slog.Debug("loaded and validated spec", "file", path)
 	return ir, nil
 }
 
