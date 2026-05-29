@@ -129,22 +129,22 @@ type RuleKind int32
 
 const (
 	RuleKind_RULE_UNSPECIFIED     RuleKind = 0
-	RuleKind_RULE_DEPEND_ONLY     RuleKind = 1  // "must only depend on"
-	RuleKind_RULE_NOT_DEPEND      RuleKind = 2  // "must not depend on"
-	RuleKind_RULE_ANNOTATE        RuleKind = 3  // "must be annotated with"
-	RuleKind_RULE_NOT_ANNOTATE    RuleKind = 4  // "must not be annotated with"
-	RuleKind_RULE_EXTEND          RuleKind = 5  // "must extend class"
-	RuleKind_RULE_NOT_EXTEND      RuleKind = 6  // "must not extend class"
-	RuleKind_RULE_IMPLEMENT       RuleKind = 7  // "must implement interface"
-	RuleKind_RULE_NOT_IMPLEMENT   RuleKind = 8  // "must not implement interface"
-	RuleKind_RULE_ACCESSED_BY     RuleKind = 9  // "must only be accessed by"
-	RuleKind_RULE_ACYCLIC         RuleKind = 10 // "must be acyclic"
-	RuleKind_RULE_IN              RuleKind = 11 // "must be in"
-	RuleKind_RULE_NOT_IN          RuleKind = 12 // "must not be in"
-	RuleKind_RULE_MATCH           RuleKind = 13 // "must match"
-	RuleKind_RULE_NOT_MATCH       RuleKind = 14 // "must not match"
-	RuleKind_RULE_VISIBILITY      RuleKind = 15 // "must be public/internal/private"
-	RuleKind_RULE_TYPE_CONSTRAINT RuleKind = 16 // "must be abstract/sealed/static"
+	RuleKind_RULE_DEPEND_ONLY     RuleKind = 1
+	RuleKind_RULE_NOT_DEPEND      RuleKind = 2
+	RuleKind_RULE_ANNOTATE        RuleKind = 3
+	RuleKind_RULE_NOT_ANNOTATE    RuleKind = 4
+	RuleKind_RULE_EXTEND          RuleKind = 5
+	RuleKind_RULE_NOT_EXTEND      RuleKind = 6
+	RuleKind_RULE_IMPLEMENT       RuleKind = 7
+	RuleKind_RULE_NOT_IMPLEMENT   RuleKind = 8
+	RuleKind_RULE_ACCESSED_BY     RuleKind = 9
+	RuleKind_RULE_ACYCLIC         RuleKind = 10
+	RuleKind_RULE_IN              RuleKind = 11
+	RuleKind_RULE_NOT_IN          RuleKind = 12
+	RuleKind_RULE_MATCH           RuleKind = 13
+	RuleKind_RULE_NOT_MATCH       RuleKind = 14
+	RuleKind_RULE_VISIBILITY      RuleKind = 15
+	RuleKind_RULE_TYPE_CONSTRAINT RuleKind = 16
 )
 
 // Enum value maps for RuleKind.
@@ -373,8 +373,8 @@ type ExcludeKind int32
 
 const (
 	ExcludeKind_EXCLUDE_UNSPECIFIED         ExcludeKind = 0
-	ExcludeKind_EXCLUDE_CLASS               ExcludeKind = 4
 	ExcludeKind_EXCLUDE_IMPLEMENT_INTERFACE ExcludeKind = 3
+	ExcludeKind_EXCLUDE_CLASS               ExcludeKind = 4
 	ExcludeKind_EXCLUDE_COMPONENT           ExcludeKind = 5
 )
 
@@ -382,14 +382,14 @@ const (
 var (
 	ExcludeKind_name = map[int32]string{
 		0: "EXCLUDE_UNSPECIFIED",
-		4: "EXCLUDE_CLASS",
 		3: "EXCLUDE_IMPLEMENT_INTERFACE",
+		4: "EXCLUDE_CLASS",
 		5: "EXCLUDE_COMPONENT",
 	}
 	ExcludeKind_value = map[string]int32{
 		"EXCLUDE_UNSPECIFIED":         0,
-		"EXCLUDE_CLASS":               4,
 		"EXCLUDE_IMPLEMENT_INTERFACE": 3,
+		"EXCLUDE_CLASS":               4,
 		"EXCLUDE_COMPONENT":           5,
 	}
 )
@@ -478,11 +478,11 @@ func (CheckKind) EnumDescriptor() ([]byte, []int) {
 
 type SpecIR struct {
 	state         protoimpl.MessageState `protogen:"open.v1"`
-	OutputDir     string                 `protobuf:"bytes,1,opt,name=output_dir,json=outputDir,proto3" json:"output_dir,omitempty"`
 	Adr           *AdrIR                 `protobuf:"bytes,2,opt,name=adr,proto3" json:"adr,omitempty"`
 	Selectors     []*SelectorIR          `protobuf:"bytes,3,rep,name=selectors,proto3" json:"selectors,omitempty"`
 	Rules         []*RuleIR              `protobuf:"bytes,4,rep,name=rules,proto3" json:"rules,omitempty"`
 	Mode          InvocationMode         `protobuf:"varint,16,opt,name=mode,proto3,enum=rule.InvocationMode" json:"mode,omitempty"`
+	PluginConfig  map[string]string      `protobuf:"bytes,17,rep,name=plugin_config,json=pluginConfig,proto3" json:"plugin_config,omitempty" protobuf_key:"bytes,1,opt,name=key" protobuf_val:"bytes,2,opt,name=value"`
 	unknownFields protoimpl.UnknownFields
 	sizeCache     protoimpl.SizeCache
 }
@@ -517,13 +517,6 @@ func (*SpecIR) Descriptor() ([]byte, []int) {
 	return file_rule_proto_rawDescGZIP(), []int{0}
 }
 
-func (x *SpecIR) GetOutputDir() string {
-	if x != nil {
-		return x.OutputDir
-	}
-	return ""
-}
-
 func (x *SpecIR) GetAdr() *AdrIR {
 	if x != nil {
 		return x.Adr
@@ -550,6 +543,13 @@ func (x *SpecIR) GetMode() InvocationMode {
 		return x.Mode
 	}
 	return InvocationMode_MODE_UNSPECIFIED
+}
+
+func (x *SpecIR) GetPluginConfig() map[string]string {
+	if x != nil {
+		return x.PluginConfig
+	}
+	return nil
 }
 
 type AdrIR struct {
@@ -607,7 +607,7 @@ func (x *AdrIR) GetTitle() string {
 type SelectorIR struct {
 	state         protoimpl.MessageState `protogen:"open.v1"`
 	Name          string                 `protobuf:"bytes,1,opt,name=name,proto3" json:"name,omitempty"`
-	Pattern       string                 `protobuf:"bytes,2,opt,name=pattern,proto3" json:"pattern,omitempty"` // package/namespace root or glob pattern
+	Pattern       string                 `protobuf:"bytes,2,opt,name=pattern,proto3" json:"pattern,omitempty"`
 	Kind          SelectorKind           `protobuf:"varint,3,opt,name=kind,proto3,enum=rule.SelectorKind" json:"kind,omitempty"`
 	unknownFields protoimpl.UnknownFields
 	sizeCache     protoimpl.SizeCache
@@ -716,15 +716,13 @@ func (x *ExclusionIR) GetValue() string {
 	return ""
 }
 
-// TargetRefIR represents a subject or target in a rule
-// Can be a selector reference or an inline pattern
 type TargetRefIR struct {
 	state         protoimpl.MessageState `protogen:"open.v1"`
-	Value         string                 `protobuf:"bytes,1,opt,name=value,proto3" json:"value,omitempty"`                        // selector name or pattern string
-	IsInline      bool                   `protobuf:"varint,2,opt,name=is_inline,json=isInline,proto3" json:"is_inline,omitempty"` // true if inline pattern (not a selector reference)
-	Type          SelectorKind           `protobuf:"varint,3,opt,name=type,proto3,enum=rule.SelectorKind" json:"type,omitempty"`  // type for inline patterns only
-	IsMatch       bool                   `protobuf:"varint,4,opt,name=is_match,json=isMatch,proto3" json:"is_match,omitempty"`    // true if "match" pattern (regex)
-	Scope         *TargetRefIR           `protobuf:"bytes,5,opt,name=scope,proto3" json:"scope,omitempty"`                        // optional "in" scope (subset relation)
+	Value         string                 `protobuf:"bytes,1,opt,name=value,proto3" json:"value,omitempty"`
+	IsInline      bool                   `protobuf:"varint,2,opt,name=is_inline,json=isInline,proto3" json:"is_inline,omitempty"`
+	Type          SelectorKind           `protobuf:"varint,3,opt,name=type,proto3,enum=rule.SelectorKind" json:"type,omitempty"`
+	IsMatch       bool                   `protobuf:"varint,4,opt,name=is_match,json=isMatch,proto3" json:"is_match,omitempty"`
+	Scope         *TargetRefIR           `protobuf:"bytes,5,opt,name=scope,proto3" json:"scope,omitempty"`
 	unknownFields protoimpl.UnknownFields
 	sizeCache     protoimpl.SizeCache
 }
@@ -795,28 +793,21 @@ func (x *TargetRefIR) GetScope() *TargetRefIR {
 }
 
 type RuleIR struct {
-	state protoimpl.MessageState `protogen:"open.v1"`
-	Name  string                 `protobuf:"bytes,1,opt,name=name,proto3" json:"name,omitempty"`
-	Kind  RuleKind               `protobuf:"varint,2,opt,name=kind,proto3,enum=rule.RuleKind" json:"kind,omitempty"`
-	// Subject of the rule (was "from" in old syntax)
-	From *TargetRefIR `protobuf:"bytes,8,opt,name=from,proto3" json:"from,omitempty"`
-	// Targets (dependencies, interface, etc.)
-	Targets  []*TargetRefIR `protobuf:"bytes,9,rep,name=targets,proto3" json:"targets,omitempty"`
-	Severity Severity       `protobuf:"varint,5,opt,name=severity,proto3,enum=rule.Severity" json:"severity,omitempty"`
-	Excludes []*ExclusionIR `protobuf:"bytes,6,rep,name=excludes,proto3" json:"excludes,omitempty"`
-	// Scanner checks within a rule block
-	Checks []*CheckIR `protobuf:"bytes,7,rep,name=checks,proto3" json:"checks,omitempty"`
-	// For visibility rules
-	Visibility Visibility `protobuf:"varint,10,opt,name=visibility,proto3,enum=rule.Visibility" json:"visibility,omitempty"`
-	// For type constraint rules
-	TypeConstraint TypeConstraint `protobuf:"varint,11,opt,name=type_constraint,json=typeConstraint,proto3,enum=rule.TypeConstraint" json:"type_constraint,omitempty"`
-	// Rule category: true for file rules, false for code rules
-	IsFileRule bool `protobuf:"varint,12,opt,name=is_file_rule,json=isFileRule,proto3" json:"is_file_rule,omitempty"`
-	// Custom rule fields (opaque block; body is forwarded to the plugin unchanged)
-	IsCustomRule  bool   `protobuf:"varint,13,opt,name=is_custom_rule,json=isCustomRule,proto3" json:"is_custom_rule,omitempty"`
-	RawBody       string `protobuf:"bytes,15,opt,name=raw_body,json=rawBody,proto3" json:"raw_body,omitempty"`
-	unknownFields protoimpl.UnknownFields
-	sizeCache     protoimpl.SizeCache
+	state          protoimpl.MessageState `protogen:"open.v1"`
+	Name           string                 `protobuf:"bytes,1,opt,name=name,proto3" json:"name,omitempty"`
+	Kind           RuleKind               `protobuf:"varint,2,opt,name=kind,proto3,enum=rule.RuleKind" json:"kind,omitempty"`
+	From           *TargetRefIR           `protobuf:"bytes,8,opt,name=from,proto3" json:"from,omitempty"`
+	Targets        []*TargetRefIR         `protobuf:"bytes,9,rep,name=targets,proto3" json:"targets,omitempty"`
+	Severity       Severity               `protobuf:"varint,5,opt,name=severity,proto3,enum=rule.Severity" json:"severity,omitempty"`
+	Excludes       []*ExclusionIR         `protobuf:"bytes,6,rep,name=excludes,proto3" json:"excludes,omitempty"`
+	Checks         []*CheckIR             `protobuf:"bytes,7,rep,name=checks,proto3" json:"checks,omitempty"`
+	Visibility     Visibility             `protobuf:"varint,10,opt,name=visibility,proto3,enum=rule.Visibility" json:"visibility,omitempty"`
+	TypeConstraint TypeConstraint         `protobuf:"varint,11,opt,name=type_constraint,json=typeConstraint,proto3,enum=rule.TypeConstraint" json:"type_constraint,omitempty"`
+	IsFileRule     bool                   `protobuf:"varint,12,opt,name=is_file_rule,json=isFileRule,proto3" json:"is_file_rule,omitempty"`
+	IsCustomRule   bool                   `protobuf:"varint,13,opt,name=is_custom_rule,json=isCustomRule,proto3" json:"is_custom_rule,omitempty"`
+	RawBody        string                 `protobuf:"bytes,15,opt,name=raw_body,json=rawBody,proto3" json:"raw_body,omitempty"`
+	unknownFields  protoimpl.UnknownFields
+	sizeCache      protoimpl.SizeCache
 }
 
 func (x *RuleIR) Reset() {
@@ -934,12 +925,10 @@ func (x *RuleIR) GetRawBody() string {
 }
 
 type CheckIR struct {
-	state protoimpl.MessageState `protogen:"open.v1"`
-	Kind  CheckKind              `protobuf:"varint,1,opt,name=kind,proto3,enum=rule.CheckKind" json:"kind,omitempty"`
-	// Path pattern (now string literals without "glob:" prefix)
-	Path string `protobuf:"bytes,2,opt,name=path,proto3" json:"path,omitempty"`
-	// For *contain* checks: literal string or "regex:..." pattern
-	Pattern       string `protobuf:"bytes,3,opt,name=pattern,proto3" json:"pattern,omitempty"`
+	state         protoimpl.MessageState `protogen:"open.v1"`
+	Kind          CheckKind              `protobuf:"varint,1,opt,name=kind,proto3,enum=rule.CheckKind" json:"kind,omitempty"`
+	Path          string                 `protobuf:"bytes,2,opt,name=path,proto3" json:"path,omitempty"`
+	Pattern       string                 `protobuf:"bytes,3,opt,name=pattern,proto3" json:"pattern,omitempty"`
 	unknownFields protoimpl.UnknownFields
 	sizeCache     protoimpl.SizeCache
 }
@@ -1000,14 +989,17 @@ var File_rule_proto protoreflect.FileDescriptor
 const file_rule_proto_rawDesc = "" +
 	"\n" +
 	"\n" +
-	"rule.proto\x12\x04rule\"\xc4\x01\n" +
+	"rule.proto\x12\x04rule\"\xbd\x02\n" +
 	"\x06SpecIR\x12\x1d\n" +
-	"\n" +
-	"output_dir\x18\x01 \x01(\tR\toutputDir\x12\x1d\n" +
 	"\x03adr\x18\x02 \x01(\v2\v.rule.AdrIRR\x03adr\x12.\n" +
 	"\tselectors\x18\x03 \x03(\v2\x10.rule.SelectorIRR\tselectors\x12\"\n" +
 	"\x05rules\x18\x04 \x03(\v2\f.rule.RuleIRR\x05rules\x12(\n" +
-	"\x04mode\x18\x10 \x01(\x0e2\x14.rule.InvocationModeR\x04mode\"-\n" +
+	"\x04mode\x18\x10 \x01(\x0e2\x14.rule.InvocationModeR\x04mode\x12C\n" +
+	"\rplugin_config\x18\x11 \x03(\v2\x1e.rule.SpecIR.PluginConfigEntryR\fpluginConfig\x1a?\n" +
+	"\x11PluginConfigEntry\x12\x10\n" +
+	"\x03key\x18\x01 \x01(\tR\x03key\x12\x14\n" +
+	"\x05value\x18\x02 \x01(\tR\x05value:\x028\x01J\x04\b\x01\x10\x02R\n" +
+	"output_dir\"-\n" +
 	"\x05AdrIR\x12\x0e\n" +
 	"\x02id\x18\x01 \x01(\tR\x02id\x12\x14\n" +
 	"\x05title\x18\x02 \x01(\tR\x05title\"b\n" +
@@ -1092,16 +1084,16 @@ const file_rule_proto_rawDesc = "" +
 	"\x10SEVERITY_WARNING\x10\x02\x12\x12\n" +
 	"\x0eSEVERITY_ERROR\x10\x03*q\n" +
 	"\vExcludeKind\x12\x17\n" +
-	"\x13EXCLUDE_UNSPECIFIED\x10\x00\x12\x11\n" +
-	"\rEXCLUDE_CLASS\x10\x04\x12\x1f\n" +
-	"\x1bEXCLUDE_IMPLEMENT_INTERFACE\x10\x03\x12\x15\n" +
+	"\x13EXCLUDE_UNSPECIFIED\x10\x00\x12\x1f\n" +
+	"\x1bEXCLUDE_IMPLEMENT_INTERFACE\x10\x03\x12\x11\n" +
+	"\rEXCLUDE_CLASS\x10\x04\x12\x15\n" +
 	"\x11EXCLUDE_COMPONENT\x10\x05*\x92\x01\n" +
 	"\tCheckKind\x12\x15\n" +
 	"\x11CHECK_UNSPECIFIED\x10\x00\x12\x17\n" +
 	"\x13CHECK_FS_MUST_EXIST\x10\x01\x12\x1b\n" +
 	"\x17CHECK_FS_MUST_NOT_EXIST\x10\x02\x12\x19\n" +
 	"\x15CHECK_FS_MUST_CONTAIN\x10\x03\x12\x1d\n" +
-	"\x19CHECK_FS_MUST_NOT_CONTAIN\x10\x04B\bZ\x06./ruleb\x06proto3"
+	"\x19CHECK_FS_MUST_NOT_CONTAIN\x10\x04B+Z)github.com/phi42/ad-enforcement-tool/ruleb\x06proto3"
 
 var (
 	file_rule_proto_rawDescOnce sync.Once
@@ -1116,7 +1108,7 @@ func file_rule_proto_rawDescGZIP() []byte {
 }
 
 var file_rule_proto_enumTypes = make([]protoimpl.EnumInfo, 8)
-var file_rule_proto_msgTypes = make([]protoimpl.MessageInfo, 7)
+var file_rule_proto_msgTypes = make([]protoimpl.MessageInfo, 8)
 var file_rule_proto_goTypes = []any{
 	(InvocationMode)(0), // 0: rule.InvocationMode
 	(SelectorKind)(0),   // 1: rule.SelectorKind
@@ -1133,30 +1125,32 @@ var file_rule_proto_goTypes = []any{
 	(*TargetRefIR)(nil), // 12: rule.TargetRefIR
 	(*RuleIR)(nil),      // 13: rule.RuleIR
 	(*CheckIR)(nil),     // 14: rule.CheckIR
+	nil,                 // 15: rule.SpecIR.PluginConfigEntry
 }
 var file_rule_proto_depIdxs = []int32{
 	9,  // 0: rule.SpecIR.adr:type_name -> rule.AdrIR
 	10, // 1: rule.SpecIR.selectors:type_name -> rule.SelectorIR
 	13, // 2: rule.SpecIR.rules:type_name -> rule.RuleIR
 	0,  // 3: rule.SpecIR.mode:type_name -> rule.InvocationMode
-	1,  // 4: rule.SelectorIR.kind:type_name -> rule.SelectorKind
-	6,  // 5: rule.ExclusionIR.kind:type_name -> rule.ExcludeKind
-	1,  // 6: rule.TargetRefIR.type:type_name -> rule.SelectorKind
-	12, // 7: rule.TargetRefIR.scope:type_name -> rule.TargetRefIR
-	2,  // 8: rule.RuleIR.kind:type_name -> rule.RuleKind
-	12, // 9: rule.RuleIR.from:type_name -> rule.TargetRefIR
-	12, // 10: rule.RuleIR.targets:type_name -> rule.TargetRefIR
-	5,  // 11: rule.RuleIR.severity:type_name -> rule.Severity
-	11, // 12: rule.RuleIR.excludes:type_name -> rule.ExclusionIR
-	14, // 13: rule.RuleIR.checks:type_name -> rule.CheckIR
-	3,  // 14: rule.RuleIR.visibility:type_name -> rule.Visibility
-	4,  // 15: rule.RuleIR.type_constraint:type_name -> rule.TypeConstraint
-	7,  // 16: rule.CheckIR.kind:type_name -> rule.CheckKind
-	17, // [17:17] is the sub-list for method output_type
-	17, // [17:17] is the sub-list for method input_type
-	17, // [17:17] is the sub-list for extension type_name
-	17, // [17:17] is the sub-list for extension extendee
-	0,  // [0:17] is the sub-list for field type_name
+	15, // 4: rule.SpecIR.plugin_config:type_name -> rule.SpecIR.PluginConfigEntry
+	1,  // 5: rule.SelectorIR.kind:type_name -> rule.SelectorKind
+	6,  // 6: rule.ExclusionIR.kind:type_name -> rule.ExcludeKind
+	1,  // 7: rule.TargetRefIR.type:type_name -> rule.SelectorKind
+	12, // 8: rule.TargetRefIR.scope:type_name -> rule.TargetRefIR
+	2,  // 9: rule.RuleIR.kind:type_name -> rule.RuleKind
+	12, // 10: rule.RuleIR.from:type_name -> rule.TargetRefIR
+	12, // 11: rule.RuleIR.targets:type_name -> rule.TargetRefIR
+	5,  // 12: rule.RuleIR.severity:type_name -> rule.Severity
+	11, // 13: rule.RuleIR.excludes:type_name -> rule.ExclusionIR
+	14, // 14: rule.RuleIR.checks:type_name -> rule.CheckIR
+	3,  // 15: rule.RuleIR.visibility:type_name -> rule.Visibility
+	4,  // 16: rule.RuleIR.type_constraint:type_name -> rule.TypeConstraint
+	7,  // 17: rule.CheckIR.kind:type_name -> rule.CheckKind
+	18, // [18:18] is the sub-list for method output_type
+	18, // [18:18] is the sub-list for method input_type
+	18, // [18:18] is the sub-list for extension type_name
+	18, // [18:18] is the sub-list for extension extendee
+	0,  // [0:18] is the sub-list for field type_name
 }
 
 func init() { file_rule_proto_init() }
@@ -1170,7 +1164,7 @@ func file_rule_proto_init() {
 			GoPackagePath: reflect.TypeOf(x{}).PkgPath(),
 			RawDescriptor: unsafe.Slice(unsafe.StringData(file_rule_proto_rawDesc), len(file_rule_proto_rawDesc)),
 			NumEnums:      8,
-			NumMessages:   7,
+			NumMessages:   8,
 			NumExtensions: 0,
 			NumServices:   0,
 		},

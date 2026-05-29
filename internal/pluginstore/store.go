@@ -177,10 +177,10 @@ func UpdateGlobalConfig(name, binaryPath, source string) error {
 		return err
 	}
 
-	plugins, _ := cfg["plugins"].(map[string]interface{})
+	plugins, _ := cfg["plugin_locations"].(map[string]interface{})
 	if plugins == nil {
 		plugins = make(map[string]interface{})
-		cfg["plugins"] = plugins
+		cfg["plugin_locations"] = plugins
 	}
 	plugins[name] = binaryPath
 
@@ -220,7 +220,7 @@ func RemoveFromGlobalConfig(name string) error {
 		return nil
 	}
 
-	if plugins, ok := cfg["plugins"].(map[string]interface{}); ok {
+	if plugins, ok := cfg["plugin_locations"].(map[string]interface{}); ok {
 		delete(plugins, name)
 	}
 	if sources, ok := cfg["plugin_sources"].(map[string]interface{}); ok {
@@ -253,7 +253,7 @@ func ReadGlobalConfig() (plugins map[string]string, sources map[string]string, e
 		return nil, nil, fmt.Errorf("parsing global config: %w", err)
 	}
 
-	if raw, ok := cfg["plugins"].(map[string]interface{}); ok {
+	if raw, ok := cfg["plugin_locations"].(map[string]interface{}); ok {
 		for k, v := range raw {
 			if s, ok := v.(string); ok {
 				plugins[k] = s

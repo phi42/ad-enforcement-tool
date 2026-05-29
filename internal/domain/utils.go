@@ -11,18 +11,22 @@ import (
 const (
 	CONFIG_FILE_NAME         string = ".ade"
 	CONFIG_FILE_EXT          string = "yaml"
-	CONFIG_PLUGIN_KEY_PREFIX string = "plugins."
+	CONFIG_PLUGIN_KEY_PREFIX string = "plugin_locations."
 
 	CONFIG_DEFAULT_COMPILE_PLUGIN string = "defaults.compile.plugin"
-	CONFIG_DEFAULT_COMPILE_OUTPUT string = "defaults.compile.output"
+	CONFIG_DEFAULT_COMPILE_INPUT  string = "defaults.compile.input"
 	CONFIG_DEFAULT_VERIFY_PLUGIN  string = "defaults.verify.plugin"
+	CONFIG_DEFAULT_VERIFY_INPUT   string = "defaults.verify.input"
+
+	CONFIG_PLUGIN_CONFIGS_PREFIX string = "plugin_configs."
 )
 
 // KnownDefaults lists all configuration keys that can be set via 'ade config set'.
 var KnownDefaults = []string{
 	CONFIG_DEFAULT_COMPILE_PLUGIN,
-	CONFIG_DEFAULT_COMPILE_OUTPUT,
+	CONFIG_DEFAULT_COMPILE_INPUT,
 	CONFIG_DEFAULT_VERIFY_PLUGIN,
+	CONFIG_DEFAULT_VERIFY_INPUT,
 }
 
 // ResolvePluginPath resolves a plugin name or path to an executable path.

@@ -15,15 +15,11 @@ import (
 const (
 	FLAG_COMPILE_INPUT       = "input"
 	FLAG_COMPILE_INPUT_SHORT = "i"
-	FLAG_COMPILE_INPUT_USAGE = "path to a .rule file or a directory of .rule files (required)"
+	FLAG_COMPILE_INPUT_USAGE = "path to a .rule file or a directory of .rule files (falls back to defaults.compile.input in config)"
 
 	FLAG_COMPILE_PLUGIN       = "plugin"
 	FLAG_COMPILE_PLUGIN_SHORT = "p"
 	FLAG_COMPILE_PLUGIN_USAGE = "plugin name or path (falls back to defaults.compile.plugin in config)"
-
-	FLAG_COMPILE_OUTPUT       = "output"
-	FLAG_COMPILE_OUTPUT_SHORT = "o"
-	FLAG_COMPILE_OUTPUT_USAGE = "output directory for compiled artifacts (falls back to defaults.compile.output in config)"
 )
 
 var enforceCompileCmd = &cobra.Command{
@@ -32,11 +28,12 @@ var enforceCompileCmd = &cobra.Command{
 	Long: `Compile rules from an ADR rule file into an executable test artifact.
 
 The plugin generates test code (e.g. a Go test file) in the output directory.
-Run the generated tests separately to validate the rules.
+Plugin-specific settings (e.g. output directory) are read from plugin_configs.<prefix>.*
+in the active config file. Run the generated tests separately to validate the rules.
 
 Examples:
-  ade compile -i docs/0001.rule -p arch-go -o ./internal
-  ade compile -i docs/ -p arch-go -o ./internal`,
+  ade compile -i docs/0001.rule -p arch-go
+  ade compile -i docs/ -p arch-go`,
 	Run: enforceCompileCommand,
 }
 
@@ -44,16 +41,19 @@ func init() {
 	enforceCmd.AddCommand(enforceCompileCmd)
 
 	enforceCompileCmd.Flags().StringP(FLAG_COMPILE_INPUT, FLAG_COMPILE_INPUT_SHORT, "", FLAG_COMPILE_INPUT_USAGE)
-	enforceCompileCmd.MarkFlagRequired(FLAG_COMPILE_INPUT)
 
 	enforceCompileCmd.Flags().StringP(FLAG_COMPILE_PLUGIN, FLAG_COMPILE_PLUGIN_SHORT, "", FLAG_COMPILE_PLUGIN_USAGE)
-
-	enforceCompileCmd.Flags().StringP(FLAG_COMPILE_OUTPUT, FLAG_COMPILE_OUTPUT_SHORT, "", FLAG_COMPILE_OUTPUT_USAGE)
 }
 
 func enforceCompileCommand(cmd *cobra.Command, args []string) {
 	input, err := cmd.Flags().GetString(FLAG_COMPILE_INPUT)
 	domain.CheckFatalError(err, "reading input flag")
+	if strings.TrimSpace(input) == "" {
+		input = adeViper.GetString(domain.CONFIG_DEFAULT_COMPILE_INPUT)
+	}
+	if strings.TrimSpace(input) == "" {
+		domain.CheckFatalError(fmt.Errorf("--input is required (pass as flag or set %s in config)", domain.CONFIG_DEFAULT_COMPILE_INPUT), "resolving input")
+	}
 
 	plugin, err := cmd.Flags().GetString(FLAG_COMPILE_PLUGIN)
 	domain.CheckFatalError(err, "reading plugin flag")
@@ -69,19 +69,23 @@ func enforceCompileCommand(cmd *cobra.Command, args []string) {
 		}
 	}
 
-	output, err := cmd.Flags().GetString(FLAG_COMPILE_OUTPUT)
-	domain.CheckFatalError(err, "reading output flag")
-	if strings.TrimSpace(output) == "" {
-		output = adeViper.GetString(domain.CONFIG_DEFAULT_COMPILE_OUTPUT)
+	info, err := shared.QueryPluginInfo(plugin)
+	domain.CheckFatalError(err, "querying plugin info")
+
+	validMode := false
+	for _, m := range info.Modes {
+		if m == "compile" {
+			validMode = true
+			break
+		}
 	}
-	if strings.TrimSpace(output) == "" {
-		domain.CheckFatalError(fmt.Errorf("--output is required (pass as flag or set %s in config)", domain.CONFIG_DEFAULT_COMPILE_OUTPUT), "resolving output")
+	if !validMode {
+		domain.CheckFatalError(fmt.Errorf("plugin %q supports modes %v and cannot be used with \"enforce compile\"", plugin, info.Modes), "validating plugin mode")
 	}
 
-	domain.CheckFatalError(shared.ValidatePluginMode(plugin, "compile"), "validating plugin mode")
-
-	if err := os.MkdirAll(output, 0o755); err != nil {
-		domain.CheckFatalError(err, "creating output directory")
+	var pluginConfig map[string]string
+	if info.ConfigPrefix != "" {
+		pluginConfig = adeViper.GetStringMapString(domain.CONFIG_PLUGIN_CONFIGS_PREFIX + info.ConfigPrefix)
 	}
 
 	ruleFiles, err := collectRuleFilePaths(input)
@@ -89,9 +93,9 @@ func enforceCompileCommand(cmd *cobra.Command, args []string) {
 
 	for _, f := range ruleFiles {
 		compileapp.Compile(compileapp.CompileInfo{
-			InputFile:  f,
-			PluginName: plugin,
-			OutputDir:  output,
+			InputFile:    f,
+			PluginName:   plugin,
+			PluginConfig: pluginConfig,
 		})
 	}
 }

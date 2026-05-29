@@ -9,9 +9,9 @@ import (
 )
 
 type VerifyInfo struct {
-	InputFile  string
-	PluginName string
-	RootDir    string
+	InputFile    string
+	PluginConfig map[string]string
+	PluginName   string
 }
 
 func Verify(info VerifyInfo) {
@@ -20,9 +20,7 @@ func Verify(info VerifyInfo) {
 	ir, err := shared.CompileSpec(info.InputFile)
 	domain.CheckFatalError(err, "loading spec")
 
-	if info.RootDir != "" {
-		ir.OutputDir = info.RootDir
-	}
+	ir.PluginConfig = info.PluginConfig
 	ir.Mode = rule.InvocationMode_MODE_VERIFY
 
 	slog.Debug("executing plugin", "plugin", info.PluginName)

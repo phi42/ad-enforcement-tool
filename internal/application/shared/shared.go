@@ -13,14 +13,15 @@ import (
 	"google.golang.org/protobuf/proto"
 )
 
-// pluginInfo is the JSON shape returned by a plugin when invoked with --info.
-type pluginInfo struct {
-	Modes []string `json:"modes"`
+// PluginInfo is the JSON shape returned by a plugin when invoked with --info.
+type PluginInfo struct {
+	Modes        []string `json:"modes"`
+	ConfigPrefix string   `json:"config_prefix"`
 }
 
-// QueryPluginInfo runs the plugin with the --info flag and returns the list
-// of invocation modes it advertises (e.g. "compile", "verify").
-func QueryPluginInfo(plugin string) ([]string, error) {
+// QueryPluginInfo runs the plugin with the --info flag and returns the plugin's
+// advertised info (modes, config prefix, etc.).
+func QueryPluginInfo(plugin string) (*PluginInfo, error) {
 	path, err := domain.ResolvePluginPath(plugin)
 	if err != nil {
 		return nil, err
@@ -34,26 +35,26 @@ func QueryPluginInfo(plugin string) ([]string, error) {
 		return nil, fmt.Errorf("querying plugin %q with --info: %w", plugin, err)
 	}
 
-	var info pluginInfo
+	var info PluginInfo
 	if err := json.Unmarshal(bytes.TrimSpace(stdout.Bytes()), &info); err != nil {
 		return nil, fmt.Errorf("parsing --info response from plugin %q: %w", plugin, err)
 	}
-	return info.Modes, nil
+	return &info, nil
 }
 
 // ValidatePluginMode ensures the plugin advertises the requested mode. It
 // returns a descriptive error if the plugin does not support that mode.
 func ValidatePluginMode(plugin, requestedMode string) error {
-	modes, err := QueryPluginInfo(plugin)
+	info, err := QueryPluginInfo(plugin)
 	if err != nil {
 		return err
 	}
-	for _, m := range modes {
+	for _, m := range info.Modes {
 		if m == requestedMode {
 			return nil
 		}
 	}
-	return fmt.Errorf("plugin %q supports modes %v and cannot be used with \"enforce %s\"", plugin, modes, requestedMode)
+	return fmt.Errorf("plugin %q supports modes %v and cannot be used with \"enforce %s\"", plugin, info.Modes, requestedMode)
 }
 
 // CompileSpec reads and parses a DSL rule file, returning the SpecIR.

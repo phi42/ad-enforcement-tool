@@ -5,6 +5,7 @@ import (
 	"os"
 	"path/filepath"
 	"slices"
+	"strings"
 	"text/tabwriter"
 
 	"github.com/phi42/ad-enforcement-tool/internal/domain"
@@ -17,21 +18,26 @@ var globalFlag bool
 var configCmd = &cobra.Command{
 	Use:   "config",
 	Short: "Manage ADE configuration defaults.",
-	Long: `Get, set, and unset default values for command flags.
+	Long: `Get, set, and unset default values for command flags and plugin configuration.
 
 Defaults are stored in the project config (.ade.yaml in the current directory)
 unless --global is specified, in which case the global config is used.
 
 Configurable keys:
   defaults.compile.plugin    Default plugin for 'compile'
-  defaults.compile.output    Default output directory for 'compile'
+  defaults.compile.input     Default input path for 'compile'
   defaults.verify.plugin     Default plugin for 'verify'
+  defaults.verify.input      Default input path for 'verify'
+
+Plugin configuration (open namespace, prefix must match the plugin's config_prefix):
+  plugin_configs.<prefix>.<key>    Plugin-specific setting forwarded to the plugin
 
 Examples:
   ade config set defaults.compile.plugin arch-go
-  ade config set defaults.compile.output ./internal --global
+  ade config set defaults.compile.input ./docs/adr --global
   ade config get defaults.compile.plugin
   ade config unset defaults.compile.plugin
+  ade config set plugin_configs.fscheck.root-dir ./src
   ade config list`,
 }
 
@@ -84,11 +90,14 @@ func resolveConfigPath() (string, error) {
 
 func configSetCommand(cmd *cobra.Command, args []string) {
 	key, value := args[0], args[1]
-	if !slices.Contains(domain.KnownDefaults, key) {
+	isKnown := slices.Contains(domain.KnownDefaults, key)
+	isPluginConfig := strings.HasPrefix(key, domain.CONFIG_PLUGIN_CONFIGS_PREFIX)
+	if !isKnown && !isPluginConfig {
 		fmt.Fprintf(os.Stderr, "Error: unknown config key %q\nAllowed keys:\n", key)
 		for _, k := range domain.KnownDefaults {
 			fmt.Fprintf(os.Stderr, "  %s\n", k)
 		}
+		fmt.Fprintf(os.Stderr, "  %s<prefix>.<key>  (plugin-specific config)\n", domain.CONFIG_PLUGIN_CONFIGS_PREFIX)
 		os.Exit(1)
 	}
 
@@ -116,11 +125,14 @@ func configGetCommand(cmd *cobra.Command, args []string) {
 
 func configUnsetCommand(cmd *cobra.Command, args []string) {
 	key := args[0]
-	if !slices.Contains(domain.KnownDefaults, key) {
+	isKnown := slices.Contains(domain.KnownDefaults, key)
+	isPluginConfig := strings.HasPrefix(key, domain.CONFIG_PLUGIN_CONFIGS_PREFIX)
+	if !isKnown && !isPluginConfig {
 		fmt.Fprintf(os.Stderr, "Error: unknown config key %q\nAllowed keys:\n", key)
 		for _, k := range domain.KnownDefaults {
 			fmt.Fprintf(os.Stderr, "  %s\n", k)
 		}
+		fmt.Fprintf(os.Stderr, "  %s<prefix>.<key>  (plugin-specific config)\n", domain.CONFIG_PLUGIN_CONFIGS_PREFIX)
 		os.Exit(1)
 	}
 
@@ -146,6 +158,24 @@ func configListCommand(cmd *cobra.Command, args []string) {
 	for _, key := range domain.KnownDefaults {
 		value, source := resolveEffective(key, globalCfg, projectCfg)
 		fmt.Fprintf(w, "%s\t%s\t%s\n", key, value, source)
+	}
+
+	// Print all plugin_configs.* entries from the merged config.
+	allSettings := adeViper.AllSettings()
+	if pluginConfigs, ok := allSettings["plugin_configs"].(map[string]interface{}); ok {
+		for prefix, entries := range pluginConfigs {
+			if entryMap, ok := entries.(map[string]interface{}); ok {
+				for k, v := range entryMap {
+					key := domain.CONFIG_PLUGIN_CONFIGS_PREFIX + prefix + "." + k
+					value, source := resolveEffective(key, globalCfg, projectCfg)
+					if value == "" {
+						value = fmt.Sprintf("%v", v)
+						source = "[merged]"
+					}
+					fmt.Fprintf(w, "%s\t%s\t%s\n", key, value, source)
+				}
+			}
+		}
 	}
 	w.Flush()
 }

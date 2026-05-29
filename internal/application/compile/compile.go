@@ -9,9 +9,9 @@ import (
 )
 
 type CompileInfo struct {
-	InputFile  string
-	OutputDir  string
-	PluginName string
+	InputFile    string
+	PluginConfig map[string]string
+	PluginName   string
 }
 
 func Compile(info CompileInfo) {
@@ -20,7 +20,7 @@ func Compile(info CompileInfo) {
 	ir, err := shared.CompileSpec(info.InputFile)
 	domain.CheckFatalError(err, "compiling spec")
 
-	ir.OutputDir = info.OutputDir
+	ir.PluginConfig = info.PluginConfig
 	ir.Mode = rule.InvocationMode_MODE_COMPILE
 
 	slog.Debug("executing plugin", "plugin", info.PluginName)
