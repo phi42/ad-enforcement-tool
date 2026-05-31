@@ -1,129 +1,159 @@
 syntax = "proto3";
+
+// Package rule defines the serialized representation of a compiled .rule file
+// passed from the ADE host to enforcement plugins over stdin.
 package rule;
 
+// go_package applies only to the Go protoc plugin.
+// Go plugin developers should prefer importing github.com/phi42/ad-enforcement-tool/rule
+// directly. Copy and regenerate from this .proto only when the module cannot be imported,
+// and override this option to match your own module path.
 option go_package = "github.com/phi42/ad-enforcement-tool/rule";
 
+// csharp_namespace applies to the C# protoc plugin (protoc-gen-csharp / Grpc.Tools).
+option csharp_namespace = "Ade.Rule";
+
+// java_package and java_multiple_files apply to the Java protoc plugin.
+option java_package         = "io.github.phi42.ade.rule";
+option java_multiple_files  = true;
+
+// InvocationMode indicates whether the ADE host is running in compile or verify mode.
 enum InvocationMode {
   MODE_UNSPECIFIED = 0;
-  MODE_COMPILE = 1;
-  MODE_VERIFY = 2;
+  MODE_COMPILE     = 1;
+  MODE_VERIFY      = 2;
 }
 
-message SpecIR {
-  reserved 1;
-  reserved "output_dir";
-  AdrIR adr = 2;
-  repeated SelectorIR selectors = 3;
-  repeated RuleIR rules = 4;
-  InvocationMode mode = 16;
-  map<string, string> plugin_config = 17;
+// Spec is the top-level envelope sent from the ADE host to each plugin.
+// It carries the fully parsed and validated contents of a single .rule file.
+message Spec {
+  Adr                 adr           = 1;
+  repeated Selector   selectors     = 2;
+  repeated Rule       rules         = 3;
+  InvocationMode      mode          = 4;
+  map<string, string> plugin_config = 5;
 }
 
-message AdrIR {
-  string id = 1;
+// Adr holds the identifying header declared at the top of a .rule file.
+message Adr {
+  string id    = 1;
   string title = 2;
 }
 
+// SelectorKind classifies the kind of element a Selector targets.
 enum SelectorKind {
   SELECTOR_UNSPECIFIED = 0;
-  SELECTOR_COMPONENT = 4;
-  SELECTOR_CLASS = 5;
-  SELECTOR_INTERFACE = 6;
-  SELECTOR_PATH = 7;
+  SELECTOR_COMPONENT   = 1;
+  SELECTOR_CLASS       = 2;
+  SELECTOR_INTERFACE   = 3;
+  SELECTOR_PATH        = 4;
 }
 
-message SelectorIR {
-  string name = 1;
-  string pattern = 2;
-  SelectorKind kind = 3;
+// Selector is a named, reusable reference to a set of code elements or paths.
+message Selector {
+  string       name    = 1;
+  string       pattern = 2;
+  SelectorKind kind    = 3;
 }
 
+// RuleKind identifies the constraint expressed by a Rule.
 enum RuleKind {
-  RULE_UNSPECIFIED = 0;
-  RULE_DEPEND_ONLY = 1;
-  RULE_NOT_DEPEND = 2;
-  RULE_ANNOTATE = 3;
-  RULE_NOT_ANNOTATE = 4;
-  RULE_EXTEND = 5;
-  RULE_NOT_EXTEND = 6;
-  RULE_IMPLEMENT = 7;
-  RULE_NOT_IMPLEMENT = 8;
-  RULE_ACCESSED_BY = 9;
-  RULE_ACYCLIC = 10;
-  RULE_IN = 11;
-  RULE_NOT_IN = 12;
-  RULE_MATCH = 13;
-  RULE_NOT_MATCH = 14;
-  RULE_VISIBILITY = 15;
+  RULE_UNSPECIFIED     = 0;
+  RULE_DEPEND_ONLY     = 1;
+  RULE_NOT_DEPEND      = 2;
+  RULE_ANNOTATE        = 3;
+  RULE_NOT_ANNOTATE    = 4;
+  RULE_EXTEND          = 5;
+  RULE_NOT_EXTEND      = 6;
+  RULE_IMPLEMENT       = 7;
+  RULE_NOT_IMPLEMENT   = 8;
+  RULE_ACCESSED_BY     = 9;
+  RULE_ACYCLIC         = 10;
+  RULE_IN              = 11;
+  RULE_NOT_IN          = 12;
+  RULE_MATCH           = 13;
+  RULE_NOT_MATCH       = 14;
+  RULE_VISIBILITY      = 15;
   RULE_TYPE_CONSTRAINT = 16;
 }
 
+// Visibility specifies an access modifier constraint on a type.
 enum Visibility {
   VISIBILITY_UNSPECIFIED = 0;
-  VISIBILITY_PUBLIC = 1;
-  VISIBILITY_INTERNAL = 2;
-  VISIBILITY_PRIVATE = 3;
+  VISIBILITY_PUBLIC      = 1;
+  VISIBILITY_INTERNAL    = 2;
+  VISIBILITY_PRIVATE     = 3;
 }
 
+// TypeConstraint specifies a structural modifier constraint on a type.
 enum TypeConstraint {
   TYPE_CONSTRAINT_UNSPECIFIED = 0;
-  TYPE_CONSTRAINT_ABSTRACT = 1;
-  TYPE_CONSTRAINT_SEALED = 2;
-  TYPE_CONSTRAINT_STATIC = 3;
+  TYPE_CONSTRAINT_ABSTRACT    = 1;
+  TYPE_CONSTRAINT_SEALED      = 2;
+  TYPE_CONSTRAINT_STATIC      = 3;
 }
 
+// Severity controls whether a rule violation is a hard error or a warning.
 enum Severity {
   SEVERITY_UNSPECIFIED = 0;
-  SEVERITY_WARNING = 2;
-  SEVERITY_ERROR = 3;
+  SEVERITY_WARNING     = 1;
+  SEVERITY_ERROR       = 2;
 }
 
+// ExcludeKind classifies what an Exclusion filters out.
 enum ExcludeKind {
-  EXCLUDE_UNSPECIFIED = 0;
-  EXCLUDE_IMPLEMENT_INTERFACE = 3;
-  EXCLUDE_CLASS = 4;
-  EXCLUDE_COMPONENT = 5;
+  EXCLUDE_UNSPECIFIED         = 0;
+  EXCLUDE_IMPLEMENT_INTERFACE = 1;
+  EXCLUDE_CLASS               = 2;
+  EXCLUDE_COMPONENT           = 3;
 }
 
+// CheckKind identifies the type of file system assertion in a Check.
 enum CheckKind {
-  CHECK_UNSPECIFIED = 0;
-  CHECK_FS_MUST_EXIST = 1;
-  CHECK_FS_MUST_NOT_EXIST = 2;
-  CHECK_FS_MUST_CONTAIN = 3;
+  CHECK_UNSPECIFIED         = 0;
+  CHECK_FS_MUST_EXIST       = 1;
+  CHECK_FS_MUST_NOT_EXIST   = 2;
+  CHECK_FS_MUST_CONTAIN     = 3;
   CHECK_FS_MUST_NOT_CONTAIN = 4;
 }
 
-message ExclusionIR {
-  ExcludeKind kind = 1;
-  string value = 2;
+// Exclusion represents a single filter that narrows the subject set of a Rule.
+message Exclusion {
+  ExcludeKind kind  = 1;
+  string      value = 2;
 }
 
-message TargetRefIR {
-  string value = 1;
-  bool is_inline = 2;
-  SelectorKind type = 3;
-  bool is_match = 4;
-  TargetRefIR scope = 5;
+// TargetRef is a reference to a rule subject or target — either a named
+// selector or an inline pattern. The optional scope captures the "in <Scope>"
+// qualifier from the DSL.
+message TargetRef {
+  string       value     = 1;
+  bool         is_inline = 2;
+  SelectorKind kind      = 3;
+  bool         is_match  = 4;
+  TargetRef    scope     = 5;
 }
 
-message RuleIR {
-  string name = 1;
-  RuleKind kind = 2;
-  TargetRefIR from = 8;
-  repeated TargetRefIR targets = 9;
-  Severity severity = 5;
-  repeated ExclusionIR excludes = 6;
-  repeated CheckIR checks = 7;
-  Visibility visibility = 10;
-  TypeConstraint type_constraint = 11;
-  bool is_file_rule = 12;
-  bool is_custom_rule = 13;
-  string raw_body = 15;
+// Rule represents a single enforcement constraint within a Spec.
+message Rule {
+  string             name            = 1;
+  RuleKind           kind            = 2;
+  TargetRef          from            = 3;
+  repeated TargetRef targets         = 4;
+  Severity           severity        = 5;
+  repeated Exclusion excludes        = 6;
+  repeated Check     checks          = 7;
+  Visibility         visibility      = 8;
+  TypeConstraint     type_constraint = 9;
+  bool               is_file_rule    = 10;
+  bool               is_custom_rule  = 11;
+  string             raw_body        = 12;
 }
 
-message CheckIR {
-  CheckKind kind = 1;
-  string path = 2;
-  string pattern = 3;
+// Check represents a single file system assertion within a file Rule.
+message Check {
+  CheckKind kind    = 1;
+  string    path    = 2;
+  string    pattern = 3;
 }
 

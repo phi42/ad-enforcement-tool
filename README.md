@@ -1,5 +1,7 @@
 # ADE
 
+[![License: Apache 2.0](https://img.shields.io/badge/License-Apache%202.0-blue.svg)](./LICENSE)
+
 ADE (Architectural Decision Enforcement) is a command-line tool written in Go for enforcing architectural decisions. Rules are written in a domain-specific language (DSL) and stored in `.rule` files. The tool compiles them into executable architecture tests or verifies them directly against a codebase using language-specific plugins.
 
 ADE is part of the [ADG](https://github.com/adr/ad-guidance-tool) ecosystem. The `adg enforce` command is powered by this module.

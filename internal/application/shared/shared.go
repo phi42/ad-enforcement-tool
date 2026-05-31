@@ -56,8 +56,8 @@ func ValidatePluginMode(plugin, requestedMode string) error {
 	return fmt.Errorf("plugin %q supports modes %v and cannot be used with \"enforce %s\"", plugin, info.Modes, requestedMode)
 }
 
-// CompileSpec reads and parses a DSL rule file, returning the SpecIR.
-func CompileSpec(path string) (*rule.SpecIR, error) {
+// CompileSpec reads and parses a DSL rule file, returning the Spec.
+func CompileSpec(path string) (*rule.Spec, error) {
 	data, err := os.ReadFile(path)
 	if err != nil {
 		return nil, fmt.Errorf("reading %s: %w", path, err)
@@ -69,9 +69,9 @@ func CompileSpec(path string) (*rule.SpecIR, error) {
 	return ir, nil
 }
 
-// RunPlugin serialises ir as protobuf, pipes it into the plugin process and
+// RunPlugin serialises spec as protobuf, pipes it into the plugin process and
 // streams stdout/stderr back to the caller's console.
-func RunPlugin(plugin string, ir *rule.SpecIR) error {
+func RunPlugin(plugin string, ir *rule.Spec) error {
 	path, err := domain.ResolvePluginPath(plugin)
 	if err != nil {
 		return err
@@ -79,7 +79,7 @@ func RunPlugin(plugin string, ir *rule.SpecIR) error {
 
 	payload, err := proto.Marshal(ir)
 	if err != nil {
-		return fmt.Errorf("unable to marshal SpecIR to protobuf: %s", err.Error())
+		return fmt.Errorf("unable to marshal Spec to protobuf: %s", err.Error())
 	}
 
 	pluginCmd := exec.Command(path)

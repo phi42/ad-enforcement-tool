@@ -60,7 +60,7 @@ code "application_only_inward" {
 	if r0.Kind != rule.RuleKind_RULE_DEPEND_ONLY {
 		t.Errorf("rule[0].Kind = %v", r0.Kind)
 	}
-	// Check From (TargetRefIR)
+	// Check From (TargetRef)
 	if r0.From == nil {
 		t.Fatal("rule[0].From is nil")
 	}
@@ -236,8 +236,8 @@ code "domain_classes_annotated" {
 	if r.From.Value != "Handler" || !r.From.IsInline {
 		t.Errorf("rule.From = %+v, want inline class 'Handler'", r.From)
 	}
-	if r.From.Type != rule.SelectorKind_SELECTOR_CLASS {
-		t.Errorf("rule.From.Type = %v, want SELECTOR_CLASS", r.From.Type)
+	if r.From.Kind != rule.SelectorKind_SELECTOR_CLASS {
+		t.Errorf("rule.From.Kind = %v, want SELECTOR_CLASS", r.From.Kind)
 	}
 	if len(r.Targets) != 1 {
 		t.Fatalf("expected 1 target, got %d", len(r.Targets))
@@ -274,8 +274,8 @@ code "classes_in_domain_annotated" {
 		t.Fatal("rule.From is nil")
 	}
 	// Subject should be class type with empty value (all classes)
-	if r.From.Type != rule.SelectorKind_SELECTOR_CLASS {
-		t.Errorf("rule.From.Type = %v, want SELECTOR_CLASS", r.From.Type)
+	if r.From.Kind != rule.SelectorKind_SELECTOR_CLASS {
+		t.Errorf("rule.From.Kind = %v, want SELECTOR_CLASS", r.From.Kind)
 	}
 	if r.From.Value != "" {
 		t.Errorf("rule.From.Value = %q, want empty (all classes)", r.From.Value)
@@ -312,8 +312,8 @@ code "handler_in_domain" {
 	if r.From.Value != "EventHandler" {
 		t.Errorf("rule.From.Value = %q, want 'EventHandler'", r.From.Value)
 	}
-	if r.From.Type != rule.SelectorKind_SELECTOR_CLASS {
-		t.Errorf("rule.From.Type = %v, want SELECTOR_CLASS", r.From.Type)
+	if r.From.Kind != rule.SelectorKind_SELECTOR_CLASS {
+		t.Errorf("rule.From.Kind = %v, want SELECTOR_CLASS", r.From.Kind)
 	}
 	if r.From.Scope == nil {
 		t.Fatal("rule.From.Scope is nil")
@@ -353,8 +353,8 @@ code "handlers_in_domain" {
 	if r.From.Scope.Value != "MyApp.Domain" || !r.From.Scope.IsInline {
 		t.Errorf("rule.From.Scope = %+v, want inline component 'MyApp.Domain'", r.From.Scope)
 	}
-	if r.From.Scope.Type != rule.SelectorKind_SELECTOR_COMPONENT {
-		t.Errorf("scope type = %v, want SELECTOR_COMPONENT", r.From.Scope.Type)
+	if r.From.Scope.Kind != rule.SelectorKind_SELECTOR_COMPONENT {
+		t.Errorf("scope type = %v, want SELECTOR_COMPONENT", r.From.Scope.Kind)
 	}
 }
 
