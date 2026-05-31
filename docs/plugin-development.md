@@ -1,55 +1,132 @@
 # Plugin Development
 
-How to write a new enforcement plugin, build from source, and regenerate the parser and protobuf code.
+This guide covers everything needed to write, test, and release an ADE enforcement plugin. Plugins are standalone executables that live in their own repositories and can be written in any language.
 
-## Prerequisites
+## Quick start
 
-- [Go](https://go.dev).
-- For grammar changes: [ANTLR](https://www.antlr.org/) 4.13.2 or later and a Java runtime.
-- For protobuf changes: `protoc` and `protoc-gen-go` (or another language's protobuf compiler if not writing a Go plugin).
+The fastest way to start is to copy one of the ready-made templates from [`templates/`](../templates/):
 
-## Writing a plugin
+- [`templates/go/`](../templates/go/) for a Go plugin using the `rule` package directly
+- [`templates/csharp/`](../templates/csharp/) for a .NET 8 C# plugin using `Google.Protobuf`
+- [`templates/java/`](../templates/java/) for a Java 21 plugin using `protobuf-java` and Gradle
 
-Any executable that speaks the ADE plugin protocol qualifies as a plugin. Plugins are decoupled from the main tool and can live in their own repositories.
+Each template is self-contained: copy the directory of your chosen language into a new repository and follow the template's `README.md` to run the first smoke test.
 
-### Protocol
+Each template also ships a pre-configured GitHub Actions release workflow in `.github/workflows/release.yml`. Push a `v*` tag and the workflow produces native executables for all major platforms and uploads them to a GitHub release. See [Releasing your plugin](#releasing-your-plugin) for details.
 
-1. `ade` builds a `SpecIR` protobuf message describing the rule file and invocation context.
-2. It spawns the plugin as a child process and writes the serialized `SpecIR` to the plugin's `stdin`.
-3. The plugin:
-   - For `ade compile`: writes one or more generated files to the directory named in `SpecIR.OutputDir`.
-   - For `ade verify`: performs checks immediately and reports results to `stdout` using the standard `LEVEL  [rule] message` format.
-4. A non-zero exit code indicates failure.
+## Protocol
 
-### Protobuf types
+Any executable that responds correctly to two interactions qualifies as an ADE plugin.
 
-The `SpecIR` and `RuleIR` types are defined in [`rule/rule.proto`](../rule/rule.proto) and exposed as a public Go package at `github.com/phi42/ad-enforcement-tool/rule`. Go plugin authors can import this directly:
+### Info query
+
+When invoked with `--info`, the plugin must print a JSON object to `stdout` and exit zero:
+
+```json
+{"modes": ["compile", "verify"], "config_prefix": "my-plugin"}
+```
+
+- `modes` lists the invocation modes the plugin supports. Declare only what you implement.
+- `config_prefix` is the key prefix your plugin reads from `plugin_config` in the `Spec` (see [Config prefix](#config-prefix)). This field is optional but recommended.
+
+ADE calls `--info` before each invocation to verify that the plugin supports the requested mode.
+
+### Spec delivery
+
+For every actual invocation (not `--info`), ADE:
+
+1. Parses and validates the `.rule` file.
+2. Builds a `Spec` protobuf message describing the rule file and invocation context.
+3. Spawns the plugin as a child process and writes the serialised `Spec` bytes to the plugin's `stdin`.
+4. Waits for the plugin to exit. A non-zero exit code signals failure.
+
+The plugin reads `stdin`, deserialises the `Spec`, and acts on it.
+
+### Spec structure
+
+`Spec` is defined in [`rule/rule.proto`](../rule/rule.proto). The fields most useful to a plugin are:
+
+| Field | Type | Description |
+| --- | --- | --- |
+| `adr` | `Adr` | The ADR header: `id` and `title` from the `.rule` file. |
+| `selectors` | `[]Selector` | Named element or path references declared in the rule file. Each has a `name`, `pattern`, and `kind` (`component`, `class`, `interface`, or `path`). |
+| `rules` | `[]Rule` | The enforcement rules. See the `Rule` message below. |
+| `mode` | `InvocationMode` | `MODE_COMPILE` or `MODE_VERIFY`. |
+| `plugin_config` | `map<string,string>` | Key/value pairs from `plugin_config` blocks in the rule file. Keys are prefixed with the plugin's config prefix. |
+| `output_dir` | `string` | Target directory for generated files (compile mode only). |
+
+Each `Rule` carries:
+
+| Field | Type | Description |
+| --- | --- | --- |
+| `name` | `string` | Rule name from the DSL. |
+| `kind` | `RuleKind` | Constraint type: `depend_only`, `not_depend`, `annotate`, `implement`, `in`, `match`, `visibility`, and others. |
+| `from` | `TargetRef` | The subject side of the constraint (a selector name or inline pattern). |
+| `targets` | `[]TargetRef` | The target side of the constraint. |
+| `severity` | `Severity` | `WARNING` or `ERROR`. |
+| `excludes` | `[]Exclusion` | Elements explicitly excluded from the rule. |
+| `is_file_rule` | `bool` | True for file-system rules (`checks` will be populated). |
+| `is_custom_rule` | `bool` | True for `custom` blocks (see [Custom rule blocks](#custom-rule-blocks)). |
+| `raw_body` | `string` | Raw body text for custom rules. |
+
+### Protobuf bindings
+
+Go plugins import the rule package directly:
 
 ```go
 import "github.com/phi42/ad-enforcement-tool/rule"
 ```
 
-For non-Go plugins, copy [`rule/rule.pb.go`](../rule/rule.pb.go) or regenerate from [`rule/rule.proto`](../rule/rule.proto) using your language's protobuf compiler.
+For C# and Java, the templates already include a copy of `rule.proto` and a build step that generates the bindings. For other languages, regenerate from [`rule/rule.proto`](../rule/rule.proto) using your language's `protoc` plugin.
 
-### Info flag
+## Next steps: implementing your logic
 
-When invoked with `--info`, the plugin must print a JSON object to `stdout` and exit zero:
+After the template confirms that the `Spec` arrives correctly, replace the `printSpec` call with real logic. The two modes work differently.
 
-```json
-{"modes": ["compile"]}
+### Verify mode
+
+In verify mode, the plugin inspects the actual codebase against the rules in the `Spec` and reports any violations to `stdout` using the format:
+
+```
+LEVEL  [rule-name] description of the violation
 ```
 
-or
+A typical verify implementation:
 
-```json
-{"modes": ["verify"]}
+1. Iterates over `spec.Rules`, skipping any rules the plugin does not understand (file rules, custom rules not meant for it, or rule kinds outside its scope).
+2. For each supported rule, resolves the `from` and `targets` fields to actual code elements by scanning the project using the `selectors` as a guide.
+3. Checks whether the actual code structure satisfies the rule's constraint (`kind`).
+4. Prints a `WARN` or `ERROR` line for each violation and exits non-zero if any `ERROR`-severity violation was found.
+
+The `netarchtest` plugin is a good reference: it maps each rule into a NetArchTest predicate, runs the tests against the compiled assembly, and writes one result line per rule.
+
+### Compile mode
+
+In compile mode, the plugin generates artefacts (test files, configuration, documentation, and so on) and writes them to `spec.OutputDir`. A typical compile implementation:
+
+1. Iterates over `spec.Rules`, collecting the rules it can generate code for.
+2. Builds a data model from the selectors and rules.
+3. Renders one or more output files using a template engine and writes them to `spec.OutputDir`.
+4. Prints an `INFO` line naming each generated file.
+
+The `netarchtest` plugin generates a C# test class containing one test method per architecture rule and writes it as `<AdrId>ArchTests.cs` in `OutputDir`.
+
+### Config prefix
+
+Plugins can read per-rule configuration from the `plugin_config` map. A rule file author writes:
+
+```dsl
+plugin_config {
+  my-plugin.timeout = "30s"
+  my-plugin.strict  = "true"
+}
 ```
 
-ADE calls `--info` before each invocation to verify that the plugin supports the requested mode.
+The plugin reads `spec.PluginConfig["my-plugin.timeout"]` at runtime. Set `config_prefix` in the `--info` response to the prefix your plugin uses so ADE can validate the keys.
 
 ### Custom rule blocks
 
-A `custom` rule block lets plugin authors define entirely new assertions without modifying the grammar. The host stores the raw body text in the `raw_body` field of `RuleIR`, which is forwarded to the plugin unchanged:
+A `custom` rule block lets plugin authors define entirely new assertions without modifying the grammar. The host stores the raw body text in the `raw_body` field of `Rule` and forwards it to the plugin unchanged:
 
 ```dsl
 custom "my_check" {
@@ -59,89 +136,31 @@ custom "my_check" {
 }
 ```
 
-The `is_custom_rule` boolean on `RuleIR` marks these entries. Custom rules are forwarded to the plugin for both `ade compile` and `ade verify`.
+The `is_custom_rule` boolean on `Rule` marks these entries. Custom rules are forwarded to the plugin for both compile and verify invocations.
 
-### Publishing via GitHub release
+## Releasing your plugin
 
-To make a plugin installable with `ade plugin install <name> --repo github.com/<owner>/<repo>`, the GitHub release must contain assets whose filenames include the target OS and architecture:
+### GitHub Actions workflows
+
+Each template includes a `.github/workflows/release.yml` that triggers on `v*` tags and produces platform-native executables:
+
+- Go template: uses [GoReleaser](https://goreleaser.com) with a matching `.goreleaser.yml`, cross-compiling for Linux, macOS, and Windows on both `amd64` and `arm64`.
+- C# template: uses `dotnet publish --self-contained` in a matrix across five platform/architecture combinations.
+- Java template: uses [GraalVM native-image](https://www.graalvm.org/native-image/) to compile the fat JAR into a native executable for each platform.
+
+### Asset naming
+
+`ade plugin install --repo` scans the latest GitHub release for an asset whose filename contains both the current OS and architecture. Name assets following this pattern:
 
 ```
 <repo>-<goos>-<goarch>          # Unix
 <repo>-<goos>-<goarch>.exe      # Windows
 ```
 
-Example assets for a repository named `my-plugin`:
+The included workflows name assets this way automatically. The `<goos>` and `<goarch>` values must match Go's `runtime.GOOS` and `runtime.GOARCH` strings (for example, `linux`, `darwin`, `windows`, and `amd64`, `arm64`).
 
-```
-my-plugin-linux-amd64
-my-plugin-linux-arm64
-my-plugin-darwin-amd64
-my-plugin-darwin-arm64
-my-plugin-windows-amd64.exe
-```
-
-`<goos>` and `<goarch>` must match Go's `runtime.GOOS` and `runtime.GOARCH` strings.
-
-## Logging
-
-All output from `ade` and its plugins is routed through a structured logger that produces consistently formatted lines:
-
-```
-LEVEL  message
-```
-
-The level label is always six characters wide (e.g., `INFO  `, `WARN  `, `ERROR `) so that lines align regardless of level.
-
-### Log levels
-
-| Level   | When it appears      | Typical content                                           |
-| ------- | -------------------- | --------------------------------------------------------- |
-| `DEBUG` | Only with `--debug`. | Internal progress steps, file paths, plugin lifecycle.    |
-| `INFO`  | Default and above.   | Successful results, generated file names, passing checks. |
-| `WARN`  | Default and above.   | Skipped rules, non-fatal notices.                         |
-| `ERROR` | Always.              | Fatal errors that stop execution.                         |
-
-### Flags
-
-Three persistent flags control the log level and apply to all subcommands:
-
-| Flag            | Effect                                                                                                               |
-| --------------- | -------------------------------------------------------------------------------------------------------------------- |
-| `--debug`       | Shows `DEBUG`, `INFO`, `WARN`, and `ERROR`. Use for diagnosing unexpected behaviour.                                 |
-| `--no-warnings` | Shows `INFO` and `ERROR` only. Suppresses `WARN` lines. Useful in pipelines where skipped-rule notices are expected. |
-| `--quiet`       | Shows `ERROR` only. Produces no output on a fully successful run. Useful in scripts where only failures matter.      |
-
-When none of these flags are set, the default level shows `INFO` and above (including `WARN`). If `--debug` and `--quiet` are both set, `--debug` takes precedence.
-
-### How plugins inherit the log level
-
-Plugins run as separate child processes. `ade` propagates the chosen level to each plugin via the `ADE_LOG_LEVEL` environment variable before spawning the process:
-
-| `ADE_LOG_LEVEL` value | Meaning                              |
-| --------------------- | ------------------------------------ |
-| *(unset)*             | `INFO` level, default behaviour.     |
-| `debug`               | `DEBUG` level.                       |
-| `no-warnings`         | `INFO` level with `WARN` suppressed. |
-| `quiet`               | `ERROR` level.                       |
-
-A plugin that reads `os.Getenv("ADE_LOG_LEVEL")` at startup and configures its logger accordingly will behave consistently whether `ade` invokes it or a test harness calls it directly.
-
-## Regenerating the parser
-
-Run after modifying [`internal/parser/ADE.g4`](../internal/parser/ADE.g4):
+### Installing a released plugin
 
 ```sh
-java -jar antlr-4.13.2-complete.jar -Dlanguage=Go -visitor -no-listener -o internal/parser internal/parser/ADE.g4
+ade plugin install my-plugin --repo github.com/<owner>/<repo>
 ```
-
-The generated files are committed, so regeneration is only needed when the grammar changes.
-
-## Regenerating protobuf code
-
-Run after modifying [`rule/rule.proto`](../rule/rule.proto):
-
-```sh
-protoc --go_out=./rule --go_opt=paths=source_relative rule/rule.proto
-```
-
-The generated files are committed, so regeneration is only needed when the schema changes.

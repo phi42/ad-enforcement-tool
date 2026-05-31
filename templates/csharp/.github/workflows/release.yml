@@ -1,0 +1,62 @@
+name: Release
+
+on:
+  push:
+    tags:
+      - 'v*'
+
+permissions:
+  contents: write
+
+jobs:
+  build:
+    strategy:
+      matrix:
+        include:
+          - { os: ubuntu-latest,    rid: linux-x64,   goos: linux,   goarch: amd64 }
+          - { os: ubuntu-24.04-arm, rid: linux-arm64, goos: linux,   goarch: arm64 }
+          - { os: macos-13,         rid: osx-x64,     goos: darwin,  goarch: amd64 }
+          - { os: macos-latest,     rid: osx-arm64,   goos: darwin,  goarch: arm64 }
+          - { os: windows-latest,   rid: win-x64,     goos: windows, goarch: amd64 }
+    runs-on: ${{ matrix.os }}
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-dotnet@v4
+        with:
+          dotnet-version: '8.x'
+
+      - name: Publish
+        shell: bash
+        run: |
+          REPO="${GITHUB_REPOSITORY##*/}"
+          NAME="${REPO}-${{ matrix.goos }}-${{ matrix.goarch }}"
+          if [[ "${{ matrix.goos }}" == "windows" ]]; then
+            BINARY="out/plugin.exe"
+            NAME="${NAME}.exe"
+          else
+            BINARY="out/plugin"
+          fi
+          dotnet publish -c Release -r "${{ matrix.rid }}" --self-contained true -o out
+          mv "$BINARY" "$NAME"
+          echo "ASSET_NAME=$NAME" >> "$GITHUB_ENV"
+
+      - uses: actions/upload-artifact@v4
+        with:
+          name: ${{ matrix.goos }}-${{ matrix.goarch }}
+          path: ${{ env.ASSET_NAME }}
+
+  release:
+    needs: build
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/download-artifact@v4
+        with:
+          path: artifacts
+          merge-multiple: true
+
+      - uses: softprops/action-gh-release@v2
+        with:
+          files: artifacts/**
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}

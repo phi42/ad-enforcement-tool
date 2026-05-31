@@ -1,0 +1,14 @@
+adr "0001" "Use Layered Architecture"
+
+component "Domain" = "com.example.domain"
+component "App"    = "com.example.app"
+
+code "no_upward_deps" {
+  App must not depend on Domain
+  severity error
+}
+
+file "readme_exists" {
+  path "README.md" must exist
+  severity warning
+}

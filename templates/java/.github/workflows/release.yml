@@ -1,0 +1,70 @@
+name: Release
+
+on:
+  push:
+    tags:
+      - 'v*'
+
+permissions:
+  contents: write
+
+# Produces native executables via GraalVM native-image so the plugin can be
+# installed with `ade plugin install <name> --repo github.com/<owner>/<repo>`.
+# protobuf-java 4.x ships GraalVM native-image metadata, so no extra
+# reflect-config is needed for Spec deserialization.
+
+jobs:
+  build:
+    strategy:
+      matrix:
+        include:
+          - { os: ubuntu-latest,    goos: linux,   goarch: amd64 }
+          - { os: ubuntu-24.04-arm, goos: linux,   goarch: arm64 }
+          - { os: macos-13,         goos: darwin,  goarch: amd64 }
+          - { os: macos-latest,     goos: darwin,  goarch: arm64 }
+          - { os: windows-latest,   goos: windows, goarch: amd64 }
+    runs-on: ${{ matrix.os }}
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: graalvm/setup-graalvm@v1
+        with:
+          java-version: '21'
+          distribution: 'graalvm'
+
+      - name: Build fat JAR
+        shell: bash
+        run: ./gradlew fatJar
+
+      - name: Build native image
+        shell: bash
+        run: |
+          REPO="${GITHUB_REPOSITORY##*/}"
+          OUTPUT="${REPO}-${{ matrix.goos }}-${{ matrix.goarch }}"
+          native-image -jar build/libs/plugin.jar --no-fallback -o "$OUTPUT"
+          # On Windows, native-image automatically appends .exe.
+          if [[ "${{ matrix.goos }}" == "windows" ]]; then
+            echo "ASSET_NAME=${OUTPUT}.exe" >> "$GITHUB_ENV"
+          else
+            echo "ASSET_NAME=${OUTPUT}" >> "$GITHUB_ENV"
+          fi
+
+      - uses: actions/upload-artifact@v4
+        with:
+          name: ${{ matrix.goos }}-${{ matrix.goarch }}
+          path: ${{ env.ASSET_NAME }}
+
+  release:
+    needs: build
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/download-artifact@v4
+        with:
+          path: artifacts
+          merge-multiple: true
+
+      - uses: softprops/action-gh-release@v2
+        with:
+          files: artifacts/**
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}

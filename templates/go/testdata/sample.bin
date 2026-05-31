@@ -1,0 +1,10 @@
+
+ 
+0001Use Layered Architecture
+Domaincom.example.domain
+Appcom.example.app)
+no_upward_deps
+App"
+
+Domain("
+readme_exists(:	README.mdP 

@@ -1,0 +1,26 @@
+<Project Sdk="Microsoft.NET.Sdk">
+
+  <PropertyGroup>
+    <OutputType>Exe</OutputType>
+    <TargetFramework>net8.0</TargetFramework>
+    <AssemblyName>plugin</AssemblyName>
+    <RootNamespace>AdePluginTemplate</RootNamespace>
+    <Nullable>enable</Nullable>
+    <ImplicitUsings>enable</ImplicitUsings>
+    <AllowUnsafeBlocks>true</AllowUnsafeBlocks>
+  </PropertyGroup>
+
+  <ItemGroup>
+    <!-- Protobuf support -->
+    <PackageReference Include="Google.Protobuf" Version="3.29.3" />
+    <!-- Protoc code generation (dev-time only) -->
+    <PackageReference Include="Grpc.Tools" Version="2.70.0" PrivateAssets="All" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <!-- Generate C# code from the rule.proto copied from ad-enforcement-tool. -->
+    <!-- Re-run generation: dotnet build  (Grpc.Tools handles protoc automatically) -->
+    <Protobuf Include="proto\rule.proto" GrpcServices="None" />
+  </ItemGroup>
+
+</Project>
