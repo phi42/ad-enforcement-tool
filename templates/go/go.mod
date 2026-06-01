@@ -1,4 +1,4 @@
-module ad-plugin-template
+module ad-plugin-template-go
 
 go 1.25.0
 

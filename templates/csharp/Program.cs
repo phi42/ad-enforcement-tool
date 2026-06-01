@@ -1,6 +1,6 @@
 using System.Text.Json;
 using System.Text.Json.Serialization;
-using Ade.Rule;
+using MyPlugin.Rule;
 using Google.Protobuf;
 
 // PluginInfo declares which ADE invocation modes this plugin supports and the

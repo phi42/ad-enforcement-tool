@@ -49,4 +49,7 @@ ade verify -i testdata/sample.rule -p my-plugin
 1. Update the `info` variable in `Program.cs`: set `ConfigPrefix` to your plugin's prefix
    and remove any `Modes` your plugin does not implement.
 2. Replace the `PrintSpec` call with your actual compile / verify logic.
-3. Rename the project and assembly as appropriate.
+3. Update the namespace to match your project structure:
+   - Change `csharp_namespace` in `proto/rule.proto`.
+   - Update the `using` directive at the top of `Program.cs` to match.
+   - Optionally update `RootNamespace` in `plugin.csproj`.

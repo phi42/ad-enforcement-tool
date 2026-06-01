@@ -57,4 +57,8 @@ ade verify -i testdata/sample.rule -p my-plugin
 1. Update `INFO` in `Main.java`: set the `configPrefix` to your plugin's prefix
    and remove any `modes` your plugin does not implement.
 2. Replace the `printSpec` call with your actual compile / verify logic.
-3. Rename the package and Gradle coordinates as appropriate.
+3. Update the package to match your project structure:
+   - Change `java_package` in `src/main/proto/rule.proto`.
+   - Rename the `com/example/plugin/` source directory to match.
+   - Update `Main-Class` and `mainClass` in `build.gradle.kts`.
+   - Update the `package` declaration at the top of `Main.java`.

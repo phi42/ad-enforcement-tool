@@ -4,18 +4,9 @@ syntax = "proto3";
 // passed from the ADE host to enforcement plugins over stdin.
 package rule;
 
-// go_package applies only to the Go protoc plugin.
-// Go plugin developers should prefer importing github.com/phi42/ad-enforcement-tool/rule
-// directly. Copy and regenerate from this .proto only when the module cannot be imported,
-// and override this option to match your own module path.
-option go_package = "github.com/phi42/ad-enforcement-tool/rule";
-
-// csharp_namespace applies to the C# protoc plugin (protoc-gen-csharp / Grpc.Tools).
-option csharp_namespace = "Ade.Rule";
-
-// java_package and java_multiple_files apply to the Java protoc plugin.
-option java_package         = "io.github.phi42.ade.rule";
-option java_multiple_files  = true;
+// TODO: change this package to match your project's base package.
+option java_package        = "com.example.rule";
+option java_multiple_files = true;
 
 // InvocationMode indicates whether the ADE host is running in compile or verify mode.
 enum InvocationMode {

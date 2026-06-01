@@ -3,7 +3,8 @@ plugins {
     application
 }
 
-group = "io.github.phi42.ade"
+// TODO: change group to your organisation's reverse domain (e.g. "com.example").
+group = "com.example"
 version = "0.1.0"
 
 repositories {
@@ -15,7 +16,8 @@ dependencies {
 }
 
 application {
-    mainClass.set("io.github.phi42.ade.plugin.Main")
+    // TODO: update this to match your package after renaming.
+    mainClass.set("com.example.plugin.Main")
 }
 
 protobuf {
@@ -30,7 +32,8 @@ tasks.register<Jar>("fatJar") {
     archiveFileName.set("plugin.jar")
     duplicatesStrategy = DuplicatesStrategy.EXCLUDE
     manifest {
-        attributes["Main-Class"] = "io.github.phi42.ade.plugin.Main"
+        // TODO: update this to match your package after renaming.
+        attributes["Main-Class"] = "com.example.plugin.Main"
     }
     from(configurations.runtimeClasspath.get().map { if (it.isDirectory) it else zipTree(it) })
     with(tasks.jar.get())

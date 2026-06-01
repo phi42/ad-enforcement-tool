@@ -1,6 +1,8 @@
-package io.github.phi42.ade.plugin;
+// TODO: rename this package to match your project structure (e.g. com.mycompany.myplugin).
+package com.example.plugin;
 
-import io.github.phi42.ade.rule.Spec;
+// TODO: if you changed java_package in rule.proto, update this import accordingly.
+import com.example.rule.Spec;
 
 import java.io.IOException;
 import java.util.Arrays;

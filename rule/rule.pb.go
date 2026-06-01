@@ -1113,8 +1113,7 @@ const file_rule_proto_rawDesc = "" +
 	"\x13CHECK_FS_MUST_EXIST\x10\x01\x12\x1b\n" +
 	"\x17CHECK_FS_MUST_NOT_EXIST\x10\x02\x12\x19\n" +
 	"\x15CHECK_FS_MUST_CONTAIN\x10\x03\x12\x1d\n" +
-	"\x19CHECK_FS_MUST_NOT_CONTAIN\x10\x04BR\n" +
-	"\x18io.github.phi42.ade.ruleP\x01Z)github.com/phi42/ad-enforcement-tool/rule\xaa\x02\bAde.Ruleb\x06proto3"
+	"\x19CHECK_FS_MUST_NOT_CONTAIN\x10\x04B+Z)github.com/phi42/ad-enforcement-tool/ruleb\x06proto3"
 
 var (
 	file_rule_proto_rawDescOnce sync.Once
