@@ -1,6 +1,6 @@
 # Plugin Development
 
-This guide covers everything needed to write, test, and release an ADE enforcement plugin. Plugins are standalone executables that live in their own repositories and can be written in any language.
+This guide covers everything needed to write, test, and release an ADE plugin. Plugins are standalone executables that live in their own repositories and can be written in any language.
 
 ## Quick start
 
@@ -46,28 +46,28 @@ The plugin reads `stdin`, deserialises the `Spec`, and acts on it.
 
 `Spec` is defined in [`rule/rule.proto`](../rule/rule.proto). The fields most useful to a plugin are:
 
-| Field | Type | Description |
-| --- | --- | --- |
-| `adr` | `Adr` | The ADR header: `id` and `title` from the `.rule` file. |
-| `selectors` | `[]Selector` | Named element or path references declared in the rule file. Each has a `name`, `pattern`, and `kind` (`component`, `class`, `interface`, or `path`). |
-| `rules` | `[]Rule` | The enforcement rules. See the `Rule` message below. |
-| `mode` | `InvocationMode` | `MODE_COMPILE` or `MODE_VERIFY`. |
-| `plugin_config` | `map<string,string>` | Key/value pairs from `plugin_config` blocks in the rule file. Keys are prefixed with the plugin's config prefix. |
-| `output_dir` | `string` | Target directory for generated files (compile mode only). |
+| Field           | Type                 | Description                                                                                                                                          |
+| --------------- | -------------------- | ---------------------------------------------------------------------------------------------------------------------------------------------------- |
+| `adr`           | `Adr`                | The ADR header: `id` and `title` from the `.rule` file.                                                                                              |
+| `selectors`     | `[]Selector`         | Named element or path references declared in the rule file. Each has a `name`, `pattern`, and `kind` (`component`, `class`, `interface`, or `path`). |
+| `rules`         | `[]Rule`             | The enforcement rules. See the `Rule` message below.                                                                                                 |
+| `mode`          | `InvocationMode`     | `MODE_COMPILE` or `MODE_VERIFY`.                                                                                                                     |
+| `plugin_config` | `map<string,string>` | Key/value pairs from `plugin_config` blocks in the rule file. Keys are prefixed with the plugin's config prefix.                                     |
+| `output_dir`    | `string`             | Target directory for generated files (compile mode only).                                                                                            |
 
 Each `Rule` carries:
 
-| Field | Type | Description |
-| --- | --- | --- |
-| `name` | `string` | Rule name from the DSL. |
-| `kind` | `RuleKind` | Constraint type: `depend_only`, `not_depend`, `annotate`, `implement`, `in`, `match`, `visibility`, and others. |
-| `from` | `TargetRef` | The subject side of the constraint (a selector name or inline pattern). |
-| `targets` | `[]TargetRef` | The target side of the constraint. |
-| `severity` | `Severity` | `WARNING` or `ERROR`. |
-| `excludes` | `[]Exclusion` | Elements explicitly excluded from the rule. |
-| `is_file_rule` | `bool` | True for file-system rules (`checks` will be populated). |
-| `is_custom_rule` | `bool` | True for `custom` blocks (see [Custom rule blocks](#custom-rule-blocks)). |
-| `raw_body` | `string` | Raw body text for custom rules. |
+| Field            | Type          | Description                                                                                                     |
+| ---------------- | ------------- | --------------------------------------------------------------------------------------------------------------- |
+| `name`           | `string`      | Rule name from the DSL.                                                                                         |
+| `kind`           | `RuleKind`    | Constraint type: `depend_only`, `not_depend`, `annotate`, `implement`, `in`, `match`, `visibility`, and others. |
+| `from`           | `TargetRef`   | The subject side of the constraint (a selector name or inline pattern).                                         |
+| `targets`        | `[]TargetRef` | The target side of the constraint.                                                                              |
+| `severity`       | `Severity`    | `WARNING` or `ERROR`.                                                                                           |
+| `excludes`       | `[]Exclusion` | Elements explicitly excluded from the rule.                                                                     |
+| `is_file_rule`   | `bool`        | True for file-system rules (`checks` will be populated).                                                        |
+| `is_custom_rule` | `bool`        | True for `custom` blocks (see [Custom rule blocks](#custom-rule-blocks)).                                       |
+| `raw_body`       | `string`      | Raw body text for custom rules.                                                                                 |
 
 ### Protobuf bindings
 
@@ -88,7 +88,7 @@ After the template confirms that the `Spec` arrives correctly, replace the `prin
 In verify mode, the plugin inspects the actual codebase against the rules in the `Spec` and reports any violations to `stdout` using the format:
 
 ```
-LEVEL  [rule-name] description of the violation
+[rule-name] description of the violation
 ```
 
 A typical verify implementation:
@@ -96,7 +96,7 @@ A typical verify implementation:
 1. Iterates over `spec.Rules`, skipping any rules the plugin does not understand (file rules, custom rules not meant for it, or rule kinds outside its scope).
 2. For each supported rule, resolves the `from` and `targets` fields to actual code elements by scanning the project using the `selectors` as a guide.
 3. Checks whether the actual code structure satisfies the rule's constraint (`kind`).
-4. Prints a `WARN` or `ERROR` line for each violation and exits non-zero if any `ERROR`-severity violation was found.
+4. Prints a `warn` or `error` line for each violation and exits non-zero if any `error`-severity violation was found.
 
 The `netarchtest` plugin is a good reference: it maps each rule into a NetArchTest predicate, runs the tests against the compiled assembly, and writes one result line per rule.
 
@@ -107,9 +107,9 @@ In compile mode, the plugin generates artefacts (test files, configuration, docu
 1. Iterates over `spec.Rules`, collecting the rules it can generate code for.
 2. Builds a data model from the selectors and rules.
 3. Renders one or more output files using a template engine and writes them to `spec.OutputDir`.
-4. Prints an `INFO` line naming each generated file.
+4. Prints an info line naming each generated file.
 
-The `netarchtest` plugin generates a C# test class containing one test method per architecture rule and writes it as `<AdrId>ArchTests.cs` in `OutputDir`.
+The `netarchtest` plugin generates a C# test class containing one test method per architecture rule and writes it as `ADR_<adrId>_NetArchTests.cs` in `OutputDir`.
 
 ### Config prefix
 
