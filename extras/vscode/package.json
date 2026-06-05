@@ -10,7 +10,7 @@
     "url": "https://github.com/adr/ad-guidance-tool"
   },
   "scripts": {
-    "package": "vsce package --out ade-syntax.vsix"
+    "package": "vsce package --out ade.vsix"
   },
   "devDependencies": {
     "@vscode/vsce": "^3.0.0"
