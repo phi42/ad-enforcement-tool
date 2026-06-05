@@ -31,7 +31,7 @@ ade validate -i ./rules/     # validate every .rule file in a directory
 Compile rules into executable architecture tests using a plugin.
 
 ```sh
-ade compile -i my-adr.rule -p arch-go -o ./internal
+ade compile -i my-adr.rule -p archgo -o ./internal
 ```
 
 | Flag             | Description                                                    |
@@ -46,9 +46,9 @@ ade compile -i my-adr.rule -p arch-go -o ./internal
 
 The `-p` / `--plugin` flag accepts either a name or a path:
 
-- Name (e.g., `arch-go`, `netarch`) is resolved in this order:
-  1. `plugins.<name>` entry in the global config.
-  2. `plugins.<name>` entry in the project-level `.ade.yaml`.
+- Name (e.g., `archgo`, `netarch`) is resolved in this order:
+  1. `plugin_locations.<name>` entry in the global config.
+  2. `plugin_locations.<name>` entry in the project-level `.ade.yaml`.
   3. Current working directory (fallback).
 
   On Windows, `.exe` is appended automatically if the name has no extension.
@@ -60,8 +60,8 @@ The `-p` / `--plugin` flag accepts either a name or a path:
 Execute rules directly against the target, without generating test code.
 
 ```sh
-ade verify -i my-adr.rule -p filecheck
-ade verify -i my-adr.rule -p filecheck -r ./src
+ade verify -i my-adr.rule -p fscheck
+ade verify -i my-adr.rule -p fscheck -r ./src
 ```
 
 | Flag             | Description                                                                      |
@@ -79,13 +79,13 @@ Register a plugin binary with ADE. Works in two modes.
 Local mode: register a binary you already built or downloaded:
 
 ```sh
-ade plugin install filecheck --path ./plugins/filecheck/filecheck
+ade plugin install fscheck --path ./plugins/fscheck/fscheck
 ```
 
 Remote mode: download from a GitHub release:
 
 ```sh
-ade plugin install arch-go --repo github.com/phi42/adplugin-arch-go
+ade plugin install archgo --repo github.com/phi42/ad-plugin-archgo
 ```
 
 In remote mode the plugin name is taken from the `<name>` argument. The binary is placed in the platform data directory:
@@ -121,7 +121,7 @@ $env:GITHUB_TOKEN = (gh auth token)    # PowerShell
 Remove the binary from the data directory and delete its entry from the global config:
 
 ```sh
-ade plugin uninstall filecheck
+ade plugin uninstall fscheck
 ```
 
 ## `ade plugin list`
@@ -133,10 +133,10 @@ ade plugin list
 ```
 
 ```
-PLUGIN      PATH                                                   STATUS   SOURCE
-arch-go     /home/user/.local/share/ade/plugins/arch-go            ok       github.com/phi42/adplugin-arch-go
-filecheck   /home/user/.local/share/ade/plugins/filecheck          ok       github.com/phi42/adplugin-fscheck
-my-plugin   /home/user/.local/share/ade/plugins/my-plugin          missing  github.com/someone/my-plugin
+PLUGIN     PATH                                                  STATUS   SOURCE
+archgo     /home/user/.local/share/ade/plugins/archgo            ok       github.com/phi42/ad-plugin-archgo
+fscheck    /home/user/.local/share/ade/plugins/fscheck           ok       github.com/phi42/ad-plugin-fscheck
+my-plugin  /home/user/.local/share/ade/plugins/my-plugin         missing  github.com/someone/my-plugin
 ```
 
 ## `ade plugin update`
@@ -144,7 +144,7 @@ my-plugin   /home/user/.local/share/ade/plugins/my-plugin          missing  gith
 Re-fetch the latest GitHub release for a remotely installed plugin:
 
 ```sh
-ade plugin update arch-go
+ade plugin update archgo
 ```
 
 Plugins installed with `--path` (local mode) cannot be updated this way because no remote source was recorded. Use `ade plugin install <name> --path <new-path>` to replace a locally installed plugin.
@@ -154,7 +154,7 @@ Plugins installed with `--path` (local mode) cannot be updated this way because 
 Manage defaults for frequently used command flags. By default the project config (`.ade.yaml` in the current directory) is targeted; pass `--global` to target the user-level config instead.
 
 ```sh
-ade config set   defaults.compile.plugin arch-go
+ade config set   defaults.compile.plugin archgo
 ade config get   defaults.compile.plugin
 ade config unset defaults.compile.plugin
 ade config list
@@ -181,13 +181,13 @@ ade compile --config ./my-config.yaml -p netarch -i ./rules
 
 ### Plugin entries
 
-Plugin paths go under the `plugins:` key. `ade plugin install` writes these entries automatically, but you can also edit them by hand:
+Plugin paths go under the `plugin_locations:` key. `ade plugin install` writes these entries automatically, but you can also edit them by hand:
 
 ```yaml
-plugins:
-  netarch:   /home/user/.local/share/ade/plugins/netarch
-  arch-go:   /home/user/.local/share/ade/plugins/arch-go
-  filecheck: /home/user/.local/share/ade/plugins/filecheck
+plugin_locations:
+  netarch: /home/user/.local/share/ade/plugins/netarch
+  archgo:  /home/user/.local/share/ade/plugins/archgo
+  fscheck: /home/user/.local/share/ade/plugins/fscheck
 ```
 
 A bare plugin name on the command line (e.g., `-p netarch`) is resolved against these entries; see [Plugin resolution](#plugin-resolution) above.
@@ -196,7 +196,7 @@ ADE also records paths of remotely installed plugins under `plugin_sources.<name
 
 ```yaml
 plugin_sources:
-  arch-go: github.com/phi42/adplugin-arch-go
+  archgo: github.com/phi42/ad-plugin-archgo
 ```
 
 ### Defaults
@@ -204,35 +204,35 @@ plugin_sources:
 Defaults for frequently used flags live under the `defaults:` key:
 
 ```yaml
-plugins:
-  arch-go:   /home/user/.local/share/ade/plugins/arch-go
-  filecheck: /home/user/.local/share/ade/plugins/filecheck
+plugin_locations:
+  archgo:  /home/user/.local/share/ade/plugins/archgo
+  fscheck: /home/user/.local/share/ade/plugins/fscheck
 defaults:
   compile:
-    plugin: arch-go
+    plugin: archgo
     output: ./internal
   verify:
-    plugin: filecheck
+    plugin: fscheck
 ```
 
 When a flag is configured as a default, it can be omitted on the command line. If a flag is omitted and no default is configured, the command exits with an error naming the missing flag and the config key to set.
 
 #### Configurable keys
 
-| Key                       | Flag replaced     | Command           |
-| ------------------------- | ----------------- | ----------------- |
-| `defaults.compile.plugin` | `--plugin` / `-p` | `compile`         |
-| `defaults.compile.output` | `--output` / `-o` | `compile`         |
-| `defaults.verify.plugin`  | `--plugin` / `-p` | `verify`          |
+| Key                       | Flag replaced     | Command   |
+| ------------------------- | ----------------- | --------- |
+| `defaults.compile.plugin` | `--plugin` / `-p` | `compile` |
+| `defaults.compile.output` | `--output` / `-o` | `compile` |
+| `defaults.verify.plugin`  | `--plugin` / `-p` | `verify`  |
 
 #### Managing defaults
 
 ```sh
-ade config set   defaults.compile.plugin arch-go                # project-level
-ade config set   defaults.verify.plugin  filecheck --global     # global-level
+ade config set   defaults.compile.plugin archgo                 # project-level
+ade config set   defaults.verify.plugin  fscheck --global       # global-level
 ade config get   defaults.compile.plugin                        # print effective value
 ade config unset defaults.compile.output                        # remove value
-ade config list                                                  # show all keys, values, and source
+ade config list                                                 # show all keys, values, and source
 ```
 
 `ade config list` tags each value with its source (`[project]`, `[global]`, or `[not set]`) so it is clear where a value comes from after the merge.
