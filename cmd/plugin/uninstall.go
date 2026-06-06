@@ -21,7 +21,7 @@ var uninstallCmd = &cobra.Command{
 func uninstallRun(cmd *cobra.Command, args []string) error {
 	name := args[0]
 
-	plugins, _, err := pkg.ReadRegistry()
+	plugins, _, _, err := pkg.ReadRegistry()
 	if err != nil {
 		return fmt.Errorf("reading global config: %w", err)
 	}

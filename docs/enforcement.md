@@ -82,11 +82,21 @@ Local mode: register a binary you already built or downloaded:
 ade plugin install fscheck --path ./plugins/fscheck/fscheck
 ```
 
+Local installs can be overwritten by running the same command again with a new `--path`.
+
 Remote mode: download from a GitHub release:
 
 ```sh
 ade plugin install archgo --repo github.com/phi42/ad-plugin-archgo
 ```
+
+Pin a specific release tag with an `@version` suffix:
+
+```sh
+ade plugin install archgo --repo github.com/phi42/ad-plugin-archgo@v0.1.1
+```
+
+Without a version suffix, the latest release is downloaded and its tag is recorded. Each plugin name can only be installed once in remote mode; use `ade plugin update` to change the version.
 
 In remote mode the plugin name is taken from the `<name>` argument. The binary is placed in the platform data directory:
 
@@ -107,9 +117,11 @@ my-plugin-windows-amd64.exe
 
 The tool matches `runtime.GOOS` and `runtime.GOARCH` (case-insensitive) against asset filenames and downloads the first match.
 
-### Authentication
+### Authentication and rate limits
 
-When the `GITHUB_TOKEN` environment variable is set, ADE sends it as a Bearer token on all GitHub API and download requests. Private repositories require a token; public ones do not. GitHub Actions sets this variable automatically. On a developer machine:
+When the `GITHUB_TOKEN` environment variable is set, ADE sends it as a Bearer token on all GitHub API and download requests. This is required for private repositories. GitHub Actions sets this variable automatically.
+
+For public repositories the variable is optional, but unauthenticated requests are subject to a rate limit of 60 per hour. If you hit the limit, you will see a 403 error. Setting a token raises the limit to 5,000 per hour. A personal access token with no extra scopes is sufficient. The easiest way to obtain one is via the GitHub CLI:
 
 ```sh
 export GITHUB_TOKEN=$(gh auth token)   # bash / zsh
@@ -126,28 +138,42 @@ ade plugin uninstall fscheck
 
 ## `ade plugin list`
 
-Print all plugins registered in the global config with their paths and a status indicator (`ok` or `missing`):
+Print all plugins registered in the global config with their paths, installed version, and a status indicator (`ok` or `missing`):
 
 ```sh
 ade plugin list
 ```
 
 ```
-PLUGIN     PATH                                                  STATUS   SOURCE
-archgo     /home/user/.local/share/ade/plugins/archgo            ok       github.com/phi42/ad-plugin-archgo
-fscheck    /home/user/.local/share/ade/plugins/fscheck           ok       github.com/phi42/ad-plugin-fscheck
-my-plugin  /home/user/.local/share/ade/plugins/my-plugin         missing  github.com/someone/my-plugin
+PLUGIN     PATH                                                  STATUS   VERSION   SOURCE
+archgo     /home/user/.local/share/ade/plugins/archgo            ok       v0.2.0    github.com/phi42/ad-plugin-archgo
+fscheck    /home/user/.local/share/ade/plugins/fscheck           ok                 (local)
+my-plugin  /home/user/.local/share/ade/plugins/my-plugin         missing  v0.1.0    github.com/someone/my-plugin
 ```
+
+The VERSION column shows the release tag that was downloaded. It is empty for locally installed plugins.
 
 ## `ade plugin update`
 
-Re-fetch the latest GitHub release for a remotely installed plugin:
+Download a GitHub release for a remotely installed plugin and overwrite the existing binary:
 
 ```sh
 ade plugin update archgo
 ```
 
-Plugins installed with `--path` (local mode) cannot be updated this way because no remote source was recorded. Use `ade plugin install <name> --path <new-path>` to replace a locally installed plugin.
+By default the latest release is fetched. If the installed version already matches the latest, the download is skipped and a message is printed. Use `--version` / `-v` to pin a specific tag (downgrading is allowed):
+
+```sh
+ade plugin update archgo --version v0.1.1
+```
+
+Use `--all` / `-a` to update every remotely installed plugin to its latest release:
+
+```sh
+ade plugin update --all
+```
+
+`--all` and `--version` cannot be combined. Plugins installed with `--path` (local mode) are ignored by `--all` and cannot be targeted by `update` individually because no remote source was recorded. Use `ade plugin install <name> --path <new-path>` to replace a locally installed plugin.
 
 ## Configuration
 
@@ -192,11 +218,13 @@ plugin_locations:
 
 A bare plugin name on the command line (e.g., `-p netarch`) is resolved against these entries; see [Plugin resolution](#plugin-resolution) above.
 
-ADE also records paths of remotely installed plugins under `plugin_sources.<name>` so that `ade plugin update` can re-fetch without the user having to remember the URL:
+ADE also records the remote source and the installed release tag under `plugin_sources.<name>` and `plugin_versions.<name>` so that `ade plugin update` can re-fetch without the user having to remember the URL, and `ade plugin list` can display the installed version:
 
 ```yaml
 plugin_sources:
   archgo: github.com/phi42/ad-plugin-archgo
+plugin_versions:
+  archgo: v0.2.0
 ```
 
 ### Defaults

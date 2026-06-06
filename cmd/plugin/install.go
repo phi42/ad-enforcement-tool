@@ -28,6 +28,13 @@ Remote mode: download directly from a GitHub release:
 
   ade plugin install archgo --repo github.com/phi42/ad-plugin-archgo
 
+An optional "@version" suffix pins a specific release tag:
+
+  ade plugin install archgo --repo github.com/phi42/ad-plugin-archgo@v0.1.1
+
+Without a version suffix the latest release is downloaded. Each plugin name
+can only be installed once; to switch versions use 'ade plugin update'.
+
 The release must contain assets whose filenames include the OS and architecture,
 for example:
 
@@ -45,9 +52,20 @@ Authentication
 
 If the GITHUB_TOKEN environment variable is set, it is forwarded as a Bearer
 token on every GitHub API and download request. This is required for private
-repositories. For public repositories the variable is not needed. On GitHub
-Actions runners GITHUB_TOKEN is set automatically; on a developer machine you
-must set it manually (e.g. in your shell profile).`,
+repositories. On GitHub Actions runners GITHUB_TOKEN is set automatically.
+
+For public repositories the variable is optional, but unauthenticated requests
+are subject to a rate limit of 60 per hour. If you hit the limit you will see a
+403 error. Authenticating raises the limit to 5 000 per hour. A personal access
+token with no extra scopes is sufficient. The easiest way to obtain one is via
+the GitHub CLI:
+
+  gh auth token
+
+Then export it in your shell profile, for example:
+
+  $env:GITHUB_TOKEN = (gh auth token)   # PowerShell
+  export GITHUB_TOKEN=$(gh auth token)  # bash / zsh`,
 	Args: cobra.ExactArgs(1),
 	RunE: installRun,
 }
@@ -60,6 +78,7 @@ func init() {
 
 func installRun(cmd *cobra.Command, args []string) error {
 	name := args[0]
+
 	localPath, err := cmd.Flags().GetString("path")
 	if err != nil {
 		return fmt.Errorf("reading path flag: %w", err)
@@ -72,28 +91,46 @@ func installRun(cmd *cobra.Command, args []string) error {
 		return fmt.Errorf("one of --path or --repo is required")
 	}
 
+	// Remote installs are rejected when the plugin name is already registered;
+	// the user must use 'ade plugin update' to change the version.
+	// Local installs are allowed to overwrite an existing entry.
+	if repoURL != "" {
+		registered, _, _, err := pkg.ReadRegistry()
+		if err != nil {
+			return fmt.Errorf("reading global config: %w", err)
+		}
+		if _, exists := registered[name]; exists {
+			return fmt.Errorf("plugin %q is already installed; to change its version run: ade plugin update %s --version <version>", name, name)
+		}
+	}
+
 	pluginDir, err := pkg.GlobalDir()
 	if err != nil {
 		return fmt.Errorf("resolving plugin directory: %w", err)
 	}
 	dst := filepath.Join(pluginDir, pkg.BinaryName(name))
 
-	var source string
+	var source, version string
 	if localPath != "" {
 		if err := pkg.CopyBinary(localPath, dst); err != nil {
 			return fmt.Errorf("copying binary: %w", err)
 		}
 	} else {
 		repoURL = pkg.NormaliseModuleURL(repoURL)
-		if err := pkg.FetchRelease(repoURL, dst); err != nil {
+		resolvedTag, err := pkg.FetchRelease(repoURL, dst)
+		if err != nil {
 			return fmt.Errorf("fetching release: %w", err)
 		}
-		source = repoURL
+		// Store the base module URL (without @version) as the source so that a
+		// plain 'ade plugin update' always resolves against the repo, and store
+		// the actual downloaded tag as the version.
+		source, _ = pkg.SplitVersion(repoURL)
+		version = resolvedTag
 	}
 	if err := pkg.SetExecutable(dst); err != nil {
 		return fmt.Errorf("setting executable permission: %w", err)
 	}
-	if err := pkg.UpdateRegistry(name, dst, source); err != nil {
+	if err := pkg.UpdateRegistry(name, dst, source, version); err != nil {
 		return fmt.Errorf("updating global config: %w", err)
 	}
 

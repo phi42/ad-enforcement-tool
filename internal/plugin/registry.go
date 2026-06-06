@@ -5,9 +5,11 @@ import (
 )
 
 // UpdateRegistry writes or updates the entry for plugin name in the global
-// config file: plugin_locations.<name> -> binaryPath, and (if source is
-// non-empty) plugin_sources.<name> -> source.
-func UpdateRegistry(name, binaryPath, source string) error {
+// config file:
+//   - plugin_locations.<name>  -> binaryPath
+//   - plugin_sources.<name>    -> source   (only when source is non-empty)
+//   - plugin_versions.<name>   -> version  (always written; empty string clears the key)
+func UpdateRegistry(name, binaryPath, source, version string) error {
 	cfgPath, err := config.GlobalConfigPath()
 	if err != nil {
 		return err
@@ -31,6 +33,17 @@ func UpdateRegistry(name, binaryPath, source string) error {
 			cfg["plugin_sources"] = sources
 		}
 		sources[name] = source
+
+		versions, _ := cfg["plugin_versions"].(map[string]interface{})
+		if versions == nil {
+			versions = make(map[string]interface{})
+			cfg["plugin_versions"] = versions
+		}
+		if version != "" {
+			versions[name] = version
+		} else {
+			delete(versions, name)
+		}
 	}
 
 	return config.WriteFile(cfgPath, cfg)
@@ -56,22 +69,26 @@ func RemoveFromRegistry(name string) error {
 	if sources, ok := cfg["plugin_sources"].(map[string]interface{}); ok {
 		delete(sources, name)
 	}
+	if versions, ok := cfg["plugin_versions"].(map[string]interface{}); ok {
+		delete(versions, name)
+	}
 	return config.WriteFile(cfgPath, cfg)
 }
 
-// ReadRegistry returns the plugin_locations and plugin_sources maps from the
-// global config file. Both maps are non-nil even when the file is missing.
-func ReadRegistry() (plugins map[string]string, sources map[string]string, err error) {
+// ReadRegistry returns the plugin_locations, plugin_sources, and plugin_versions
+// maps from the global config file. All maps are non-nil even when the file is missing.
+func ReadRegistry() (plugins map[string]string, sources map[string]string, versions map[string]string, err error) {
 	plugins = make(map[string]string)
 	sources = make(map[string]string)
+	versions = make(map[string]string)
 
 	cfgPath, err := config.GlobalConfigPath()
 	if err != nil {
-		return nil, nil, err
+		return nil, nil, nil, err
 	}
 	cfg, err := config.ReadFile(cfgPath)
 	if err != nil {
-		return nil, nil, err
+		return nil, nil, nil, err
 	}
 
 	if raw, ok := cfg["plugin_locations"].(map[string]interface{}); ok {
@@ -88,5 +105,12 @@ func ReadRegistry() (plugins map[string]string, sources map[string]string, err e
 			}
 		}
 	}
-	return plugins, sources, nil
+	if raw, ok := cfg["plugin_versions"].(map[string]interface{}); ok {
+		for k, v := range raw {
+			if s, ok := v.(string); ok {
+				versions[k] = s
+			}
+		}
+	}
+	return plugins, sources, versions, nil
 }

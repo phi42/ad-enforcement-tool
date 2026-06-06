@@ -30,7 +30,7 @@ or "(local)" for plugins installed with --path.`,
 }
 
 func listRun(cmd *cobra.Command, args []string) error {
-	plugins, sources, err := pkg.ReadRegistry()
+	plugins, sources, versions, err := pkg.ReadRegistry()
 	if err != nil {
 		return fmt.Errorf("reading global config: %w", err)
 	}
@@ -46,7 +46,7 @@ func listRun(cmd *cobra.Command, args []string) error {
 	sort.Strings(names)
 
 	w := tabwriter.NewWriter(os.Stdout, 0, 0, 3, ' ', 0)
-	fmt.Fprintln(w, "PLUGIN\tPATH\tSTATUS\tSOURCE")
+	fmt.Fprintln(w, "PLUGIN\tPATH\tSTATUS\tVERSION\tSOURCE")
 	for _, name := range names {
 		path := plugins[name]
 		status := "ok"
@@ -54,10 +54,13 @@ func listRun(cmd *cobra.Command, args []string) error {
 			status = "missing"
 		}
 		source := sources[name]
+		version := ""
 		if source == "" {
 			source = "(local)"
+		} else {
+			version = versions[name]
 		}
-		fmt.Fprintf(w, "%s\t%s\t%s\t%s\n", name, path, status, source)
+		fmt.Fprintf(w, "%s\t%s\t%s\t%s\t%s\n", name, path, status, version, source)
 	}
 	return w.Flush()
 }

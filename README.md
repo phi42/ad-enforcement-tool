@@ -103,6 +103,12 @@ Install a plugin from a GitHub release:
 ade plugin install archgo --repo github.com/phi42/ad-plugin-archgo
 ```
 
+Pin a specific release tag with `@version`:
+
+```bash
+ade plugin install archgo --repo github.com/phi42/ad-plugin-archgo@v0.1.1
+```
+
 Or register a locally built binary:
 
 ```bash

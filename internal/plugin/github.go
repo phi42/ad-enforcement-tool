@@ -12,26 +12,40 @@ import (
 )
 
 // FetchRelease downloads the binary for the current OS and architecture from
-// the latest GitHub release of moduleURL (e.g. "github.com/owner/repo") and
-// writes it to dst.
-func FetchRelease(moduleURL, dst string) error {
-	owner, repo, err := ParseModuleURL(moduleURL)
-	if err != nil {
-		return err
+// a GitHub release of moduleURL and writes it to dst. It returns the release
+// tag that was actually downloaded.
+//
+// moduleURL may include an optional "@version" suffix to pin a specific
+// release tag (e.g. "github.com/owner/repo@v1.2.3"). When no version is
+// given the latest release is used.
+func FetchRelease(moduleURL, dst string) (tagName string, err error) {
+	base, version := SplitVersion(moduleURL)
+	owner, repo, parseErr := ParseModuleURL(base)
+	if parseErr != nil {
+		return "", parseErr
 	}
-	release, err := fetchLatestRelease(owner, repo)
+	var release *githubRelease
+	if version == "" {
+		release, err = fetchLatestRelease(owner, repo)
+	} else {
+		release, err = fetchReleaseByTag(owner, repo, version)
+	}
 	if err != nil {
-		return err
+		return "", err
 	}
 	asset, err := matchAsset(release)
 	if err != nil {
-		return err
+		return "", err
 	}
-	return downloadAsset(owner, repo, asset.ID, dst)
+	if err := downloadAsset(owner, repo, asset.ID, dst); err != nil {
+		return "", err
+	}
+	return release.TagName, nil
 }
 
 type githubRelease struct {
-	Assets []githubAsset `json:"assets"`
+	TagName string        `json:"tag_name"`
+	Assets  []githubAsset `json:"assets"`
 }
 
 type githubAsset struct {
@@ -40,9 +54,35 @@ type githubAsset struct {
 	BrowserDownloadURL string `json:"browser_download_url"`
 }
 
+// FetchLatestTag returns the tag name of the latest GitHub release for
+// moduleURL (e.g. "github.com/owner/repo") without downloading the binary.
+func FetchLatestTag(moduleURL string) (string, error) {
+	owner, repo, err := ParseModuleURL(moduleURL)
+	if err != nil {
+		return "", err
+	}
+	release, err := fetchLatestRelease(owner, repo)
+	if err != nil {
+		return "", err
+	}
+	return release.TagName, nil
+}
+
+// fetchReleaseByTag GETs /repos/<owner>/<repo>/releases/tags/<tag> and decodes it.
+func fetchReleaseByTag(owner, repo, tag string) (*githubRelease, error) {
+	apiURL := fmt.Sprintf("https://api.github.com/repos/%s/%s/releases/tags/%s", owner, repo, tag)
+	return doGitHubReleaseRequest(apiURL, owner, repo)
+}
+
 // fetchLatestRelease GETs /repos/<owner>/<repo>/releases/latest and decodes it.
 func fetchLatestRelease(owner, repo string) (*githubRelease, error) {
 	apiURL := fmt.Sprintf("https://api.github.com/repos/%s/%s/releases/latest", owner, repo)
+	return doGitHubReleaseRequest(apiURL, owner, repo)
+}
+
+// doGitHubReleaseRequest performs a GET against a GitHub releases API URL and
+// decodes the JSON response into a githubRelease.
+func doGitHubReleaseRequest(apiURL, owner, repo string) (*githubRelease, error) {
 	req, err := http.NewRequest(http.MethodGet, apiURL, nil)
 	if err != nil {
 		return nil, fmt.Errorf("building GitHub API request: %w", err)
@@ -60,6 +100,16 @@ func fetchLatestRelease(owner, repo string) (*githubRelease, error) {
 	defer resp.Body.Close()
 
 	if resp.StatusCode != http.StatusOK {
+		// A 403 with X-RateLimit-Remaining: 0 means the unauthenticated rate
+		// limit (60 req/h) has been exhausted. Give an actionable message.
+		if resp.StatusCode == http.StatusForbidden &&
+			resp.Header.Get("X-RateLimit-Remaining") == "0" {
+			return nil, fmt.Errorf(
+				"GitHub API rate limit exceeded for %s/%s; "+
+					"set the GITHUB_TOKEN environment variable to raise the limit",
+				owner, repo,
+			)
+		}
 		return nil, fmt.Errorf("GitHub API returned %s for %s/%s", resp.Status, owner, repo)
 	}
 

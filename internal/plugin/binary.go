@@ -49,6 +49,16 @@ func NormaliseModuleURL(moduleURL string) string {
 	return moduleURL
 }
 
+// SplitVersion splits a module URL that may contain a "@version" suffix,
+// e.g. "github.com/owner/repo@v1.2.3", into the base URL and the version tag.
+// If no "@" is present, version is "".
+func SplitVersion(moduleURL string) (base, version string) {
+	if i := strings.LastIndex(moduleURL, "@"); i >= 0 {
+		return moduleURL[:i], moduleURL[i+1:]
+	}
+	return moduleURL, ""
+}
+
 // ParseModuleURL splits a "github.com/<owner>/<repo>" module URL into owner
 // and repo. An optional "https://" prefix is stripped before parsing.
 func ParseModuleURL(moduleURL string) (owner, repo string, err error) {
