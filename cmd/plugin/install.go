@@ -129,7 +129,7 @@ func installRun(cmd *cobra.Command, args []string) error {
 		// plain 'ade plugin update' always resolves against the repo, and store
 		// the actual downloaded tag as the version.
 		source, _ = pkg.SplitVersion(repoURL)
-		version = resolvedTag
+		version = pkg.StripVersionPrefix(resolvedTag)
 	}
 	if err := pkg.SetExecutable(dst); err != nil {
 		return fmt.Errorf("setting executable permission: %w", err)

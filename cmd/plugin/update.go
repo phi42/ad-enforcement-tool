@@ -153,6 +153,7 @@ func updateOne(name, binaryPath, source, version, installedTag string) error {
 	if err != nil {
 		return fmt.Errorf("fetching release: %w", err)
 	}
+	resolvedTag = pkg.StripVersionPrefix(resolvedTag)
 	if err := pkg.SetExecutable(binaryPath); err != nil {
 		return fmt.Errorf("setting executable permission: %w", err)
 	}

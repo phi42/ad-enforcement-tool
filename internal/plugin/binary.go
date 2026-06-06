@@ -59,6 +59,12 @@ func SplitVersion(moduleURL string) (base, version string) {
 	return moduleURL, ""
 }
 
+// StripVersionPrefix removes a leading "v" from a version string so that
+// release tags (e.g. "v0.1.1") are stored and displayed without the prefix.
+func StripVersionPrefix(version string) string {
+	return strings.TrimPrefix(version, "v")
+}
+
 // ParseModuleURL splits a "github.com/<owner>/<repo>" module URL into owner
 // and repo. An optional "https://" prefix is stripped before parsing.
 func ParseModuleURL(moduleURL string) (owner, repo string, err error) {
