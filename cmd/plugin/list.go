@@ -54,11 +54,9 @@ func listRun(cmd *cobra.Command, args []string) error {
 			status = "missing"
 		}
 		source := sources[name]
-		version := ""
+		version := versions[name]
 		if source == "" {
 			source = "(local)"
-		} else {
-			version = versions[name]
 		}
 		fmt.Fprintf(w, "%s\t%s\t%s\t%s\t%s\n", name, path, status, version, source)
 	}

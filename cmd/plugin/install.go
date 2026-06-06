@@ -115,6 +115,10 @@ func installRun(cmd *cobra.Command, args []string) error {
 		if err := pkg.CopyBinary(localPath, dst); err != nil {
 			return fmt.Errorf("copying binary: %w", err)
 		}
+		// ask the plugin for its self-reported version.
+		if info, err := pkg.QueryInfo(dst); err == nil && info.Version != "" {
+			version = info.Version
+		}
 	} else {
 		repoURL = pkg.NormaliseModuleURL(repoURL)
 		resolvedTag, err := pkg.FetchRelease(repoURL, dst)

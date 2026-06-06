@@ -12,6 +12,7 @@ import (
 type Info struct {
 	Modes        []string `json:"modes"`
 	ConfigPrefix string   `json:"config_prefix"`
+	Version      string   `json:"version,omitempty"`
 }
 
 // SupportsMode reports whether the plugin advertises mode in its Modes list.

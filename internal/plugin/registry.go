@@ -33,17 +33,17 @@ func UpdateRegistry(name, binaryPath, source, version string) error {
 			cfg["plugin_sources"] = sources
 		}
 		sources[name] = source
+	}
 
-		versions, _ := cfg["plugin_versions"].(map[string]interface{})
-		if versions == nil {
-			versions = make(map[string]interface{})
-			cfg["plugin_versions"] = versions
-		}
-		if version != "" {
-			versions[name] = version
-		} else {
-			delete(versions, name)
-		}
+	versions, _ := cfg["plugin_versions"].(map[string]interface{})
+	if versions == nil {
+		versions = make(map[string]interface{})
+		cfg["plugin_versions"] = versions
+	}
+	if version != "" {
+		versions[name] = version
+	} else {
+		delete(versions, name)
 	}
 
 	return config.WriteFile(cfgPath, cfg)
