@@ -1,6 +1,6 @@
 # Implementation
 
-This document describes the internal architecture of `ad-enforcement-tool` (the `ade` binary). It targets contributors who want to understand or modify the code. End users should start with the [README](../README.md), the [DSL reference](../dsl/dsl.md), or the [CLI reference](enforcement.md).
+This document describes the internal architecture of `ad-enforcement-tool` (the `ade` binary). It targets contributors who want to understand or modify the code. End users should start with the [README](../README.md), the [user guide](user-guide.md), the [DSL reference](../dsl/dsl-reference.md), or the [CLI reference](cli-reference.md).
 
 ## Overview
 
@@ -53,8 +53,8 @@ ad-enforcement-tool/
 │       ├── update.go            `ade plugin update <name>`
 │       └── list.go              `ade plugin list`
 ├── dsl/                         public package: language reference only
-│   ├── reference.go             Reference (//go:embed dsl.md), Validate
-│   └── dsl.md                   the language reference (embedded as dsl.Reference)
+│   ├── reference.go             Reference (//go:embed dsl-reference.md), Validate
+│   └── dsl-reference.md         the language reference (embedded as dsl.Reference)
 ├── internal/
 │   ├── config/                  configuration: keys, file IO, runtime viper
 │   │   ├── keys.go              YAML key constants and KnownDefaults
@@ -85,7 +85,8 @@ ad-enforcement-tool/
 │   └── rule.pb.go               generated; do not edit
 ├── extras/                      non-Go developer tools (not part of the Go module)
 │   ├── vscode/                  VS Code syntax-highlighting extension for .rule files
-│   └── templates/               starter templates for plugin authors (Go, C#, Java)
+│   ├── plugin-templates/        starter templates for plugin authors (Go, C#, Java)
+│   └── ci-templates/            CI workflow templates (GitHub Actions)
 └── docs/                        human-facing documentation (this directory)
 ```
 
@@ -164,7 +165,7 @@ The public `dsl` package exposes only [dsl/reference.go](../dsl/reference.go): t
 
 ### When to extend the parser
 
-- Adding a new verb phrase (e.g. `must be exported`): add the rule to `internal/parser/ADE.g4`, regenerate the parser (see [docs/plugin-development.md](plugin-development.md)), then add a new `apply*` method in `internal/dsl/visitor.go` and dispatch to it from `visitVerbPhrase`. If the new phrase produces a new `rule.RuleKind`, list it in `codeRulesWithSubject` in `internal/dsl/validate.go` so its selector references are checked.
+- Adding a new verb phrase (e.g. `must be exported`): add the rule to `internal/parser/ADE.g4`, regenerate the parser (see [docs/plugin-developer-guide.md](plugin-developer-guide.md)), then add a new `apply*` method in `internal/dsl/visitor.go` and dispatch to it from `visitVerbPhrase`. If the new phrase produces a new `rule.RuleKind`, list it in `codeRulesWithSubject` in `internal/dsl/validate.go` so its selector references are checked.
 - Adding a new selector kind (e.g. `enum`): extend the `selectorType` rule in the grammar, add the new kind to `rule.proto`, and update `getSelectorKind` in `internal/dsl/visitor.go`.
 - Adding new semantic checks: add them in `internal/dsl/validate.go`, ideally alongside the existing helpers (`validateAssertionShape`, `validateSelectorRefs`).
 
@@ -187,7 +188,7 @@ A plugin is any executable that responds to two invocations:
 
 The host marshals the rule.Spec protobuf and pipes it to the plugin's stdin. The plugin's stdout and stderr are forwarded directly to the host's. A non-zero exit code from the plugin causes the host to exit non-zero.
 
-This protocol lives in `internal/plugin/` and the wire types are in [rule/rule.proto](../rule/rule.proto). The full plugin contract for authors is in [docs/plugin-development.md](plugin-development.md).
+This protocol lives in `internal/plugin/` and the wire types are in [rule/rule.proto](../rule/rule.proto). The full plugin contract for authors is in [docs/plugin-developer-guide.md](plugin-developer-guide.md).
 
 ## Configuration model
 
@@ -248,8 +249,8 @@ Within commands, errors are wrapped with `fmt.Errorf("doing X: %w", err)` so tha
 
 ## Regenerating the ANTLR parser and the protobuf
 
-These steps are out of scope for normal development but are documented in [docs/plugin-development.md](plugin-development.md). The generated files live under [internal/parser/](../internal/parser/) (ANTLR) and [rule/rule.pb.go](../rule/rule.pb.go) (protoc-gen-go). Do not hand-edit them; regenerate from `internal/parser/ADE.g4` and `rule/rule.proto` respectively.
+These steps are out of scope for normal development but are documented in [docs/plugin-developer-guide.md](plugin-developer-guide.md). The generated files live under [internal/parser/](../internal/parser/) (ANTLR) and [rule/rule.pb.go](../rule/rule.pb.go) (protoc-gen-go). Do not hand-edit them; regenerate from `internal/parser/ADE.g4` and `rule/rule.proto` respectively.
 
 ## Plugin starter templates
 
-Starter templates for authoring a new plugin in Go, C#, or Java live in [extras/templates/](../extras/templates/). Each subdirectory contains a minimal but runnable plugin skeleton and a `test-pipe` script that exercises the `--info` and stdin/stdout protocol locally without needing a full ADE installation.
+Starter templates for authoring a new plugin in Go, C#, or Java live in [extras/plugin-templates/](../extras/plugin-templates/). Each subdirectory contains a minimal but runnable plugin skeleton and a `test-pipe` script that exercises the `--info` and stdin/stdout protocol locally without needing a full ADE installation.

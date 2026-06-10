@@ -4,11 +4,11 @@ This guide covers everything needed to write, test, and release an ADE plugin. P
 
 ## Quick start
 
-The fastest way to start is to copy one of the ready-made templates from [`templates/`](../templates/):
+The fastest way to start is to copy one of the ready-made templates from [`extras/plugin-templates/`](../extras/plugin-templates/):
 
-- [`templates/go/`](../templates/go/) for a Go plugin using the `rule` package directly
-- [`templates/csharp/`](../templates/csharp/) for a .NET 8 C# plugin using `Google.Protobuf`
-- [`templates/java/`](../templates/java/) for a Java 21 plugin using `protobuf-java` and Gradle
+- [`extras/plugin-templates/go/`](../extras/plugin-templates/go/) for a Go plugin using the `rule` package directly
+- [`extras/plugin-templates/csharp/`](../extras/plugin-templates/csharp/) for a .NET 8 C# plugin using `Google.Protobuf`
+- [`extras/plugin-templates/java/`](../extras/plugin-templates/java/) for a Java 21 plugin using `protobuf-java` and Gradle
 
 Each template is self-contained: copy the directory of your chosen language into a new repository and follow the template's `README.md` to run the first smoke test.
 

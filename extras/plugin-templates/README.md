@@ -14,8 +14,8 @@ protocol:
 2. Otherwise they read a serialised `rule.Spec` protobuf message from stdin,
    do their work, and exit zero on success.
 
-See [`docs/plugin-development.md`](../docs/plugin-development.md) for the full
-protocol specification.
+See [`docs/plugin-developer-guide.md`](../../docs/plugin-developer-guide.md) for
+the full protocol specification.
 
 ## Templates
 

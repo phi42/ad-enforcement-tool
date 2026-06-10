@@ -1,0 +1,71 @@
+# Example workflow that runs ADE on every push and pull request.
+#
+# Replace the placeholders marked with TODO with the values that match your
+# repository:
+#   - ADE_VERSION:            the ade release to install
+#   - the plugin install lines: the plugins your rules depend on (and their versions)
+#   - the rule input path:    where your .rule files live
+#   - the project-specific test step (compile mode only)
+name: Enforce architectural decisions
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+
+jobs:
+  ade:
+    runs-on: ubuntu-latest
+    env:
+      # GITHUB_TOKEN raises the GitHub API rate limit for plugin downloads
+      # from 60/h to 5 000/h and is required for plugins in private repos.
+      GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Setup Go
+        uses: actions/setup-go@v5
+        with:
+          go-version: stable
+
+      - name: Install ade
+        # TODO: pin the ade release you want to use (e.g. @v0.1.0). Using
+        # @latest is convenient locally but makes the build non-reproducible.
+        run: go install github.com/phi42/ad-enforcement-tool/ade@v0.1.0
+
+      # TODO: install every plugin your rule files use. Pin a version with
+      # @vX.Y.Z so the build is reproducible. Add or remove lines as needed.
+      - name: Install plugins
+        run: |
+          ade plugin install fscheck --repo github.com/phi42/ad-plugin-fscheck@v0.1.1
+          ade plugin install archgo  --repo github.com/phi42/ad-plugin-archgo@v0.1.1
+          ade plugin list
+
+      # ----------------------------------------------------------------------
+      # Verify mode: run file-system checks directly, no test compilation.
+      # ----------------------------------------------------------------------
+      - name: Verify rules (fscheck)
+        run: ade verify -i docs/adr -p fscheck   # TODO: adjust the input path
+
+      # ----------------------------------------------------------------------
+      # Compile mode: generate test code and run it with the project's normal
+      # test runner. Keep only the block that matches your language; delete or
+      # comment out the rest.
+      # ----------------------------------------------------------------------
+
+      # Go (arch-go)
+      - name: Compile rules (archgo)
+        run: ade compile -i docs/adr -p archgo   # TODO: adjust the input path
+      - name: Run generated arch-go tests
+        run: go test ./internal/archtests/...    # TODO: adjust the test path
+
+      # .NET (NetArchTest)
+      # - name: Setup .NET
+      #   uses: actions/setup-dotnet@v4
+      #   with:
+      #     dotnet-version: 8.0.x
+      # - name: Compile rules (netarchtest)
+      #   run: ade compile -i docs/adr -p netarchtest
+      # - name: Run generated NetArchTest tests
+      #   run: dotnet test src/Tests/ArchTests/Project.csproj
