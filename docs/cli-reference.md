@@ -281,7 +281,9 @@ plugin_configs:
   archgo:
     output-dir: ./internal/archtests
   netarchtest:
-    test-project: ./src/Tests/ArchTests/Project.csproj
+    output-dir:        ./src/Tests/ArchTests/Generated
+    test-project:      ./src/Tests/ArchTests/Project.csproj
+    assembly-prefixes: CompanyName.MyApp.
   fscheck:
     root-dir: ./src
 defaults:

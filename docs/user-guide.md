@@ -14,6 +14,11 @@ You can install `ade` either through the Go toolchain or from a release archive.
 go install github.com/phi42/ad-enforcement-tool/ade@latest
 ```
 
+Or install a specific tag for reproducible installs (recommended in CI):
+```bash
+go install github.com/phi42/ad-enforcement-tool/ade@v0.1.1
+```
+
 The `ade` binary is placed in `$GOPATH/bin` (typically `~/go/bin` on Linux/macOS or `%USERPROFILE%\go\bin` on Windows). Make sure that directory is in your `PATH`, then verify:
 
 ```bash
