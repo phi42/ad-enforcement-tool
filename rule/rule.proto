@@ -96,6 +96,7 @@ enum ExcludeKind {
   EXCLUDE_IMPLEMENT_INTERFACE = 1;
   EXCLUDE_CLASS               = 2;
   EXCLUDE_COMPONENT           = 3;
+  EXCLUDE_PATH                = 4;
 }
 
 // CheckKind identifies the type of file system assertion in a Check.

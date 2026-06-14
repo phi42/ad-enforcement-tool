@@ -4,6 +4,9 @@ grammar ADE;
 // Parser rules
 // =====================
 
+// Note: `custom "<name>" { ... }` blocks are extracted by a pre-processing
+// step before the ANTLR lexer runs. They are not part of this grammar.
+
 file
   : adrDecl (selectorDecl | ruleDecl)* EOF
   ;
@@ -70,7 +73,10 @@ mustExpr
   ;
 
 // Verb phrases: different verbs take different arguments
-// Optional filler words: on, by, with for natural language
+// Optional filler words: 'interface' before the target in implement phrases,
+// 'class' before the target in extend phrases. Both are consumed for
+// readability but have no semantic effect in the grammar; the visitor
+// recovers the target Kind from rule context instead.
 verbPhrase
   : DEPEND ON? targetExpr (COMMA targetExpr)*                # DependOnPhrase
   | EXIST                                                    # ExistPhrase
@@ -147,7 +153,8 @@ ANNOTATED         : 'annotated';
 ACCESSED          : 'accessed';
 ACYCLIC           : 'acyclic';
 
-// Filler words (optional for natural language)
+// Filler words (optional for natural language readability)
+// Documented in dsl-reference.md: on, be, by, with
 ON                : 'on';
 BE                : 'be';
 BY                : 'by';

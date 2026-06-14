@@ -40,8 +40,10 @@ func listRun(cmd *cobra.Command, args []string) error {
 				key := cfg.PluginConfigsPrefix + prefix + "." + k
 				value, source := resolveEffective(key, globalCfg, projectCfg)
 				if value == "" {
+					// Fallback: value is in the merged viper state (e.g. via
+					// AutomaticEnv) but not in any config file on disk.
 					value = fmt.Sprintf("%v", v)
-					source = "[merged]"
+					source = "[env]"
 				}
 				fmt.Fprintf(w, "%s\t%s\t%s\n", key, value, source)
 			}
@@ -52,7 +54,18 @@ func listRun(cmd *cobra.Command, args []string) error {
 
 // resolveEffective looks up key in the project config first, then the global
 // config, mirroring the precedence used during normal command execution.
+// When a custom config file is active (--config flag), the custom file is
+// checked first (labelled [custom]), then the global file.
 func resolveEffective(key, globalCfg, projectCfg string) (string, string) {
+	if customCfg := cfg.CustomConfigFile(); customCfg != "" {
+		if val, ok, _ := cfg.GetKey(customCfg, key); ok {
+			return val, "[custom]"
+		}
+		if val, ok, _ := cfg.GetKey(globalCfg, key); ok {
+			return val, "[global]"
+		}
+		return "", "[not set]"
+	}
 	if val, ok, _ := cfg.GetKey(projectCfg, key); ok {
 		return val, "[project]"
 	}

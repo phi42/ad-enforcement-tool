@@ -146,5 +146,15 @@
     "prefix": "exclude",
     "body": "exclude \"${1:path/**/*.ext}\"",
     "description": "Exclude paths from a file rule"
+  },
+  "Component Match": {
+    "prefix": "component match",
+    "body": "component match \"regex:${1:.*pattern}\"",
+    "description": "Subject expression: all components whose package path matches a regex"
+  },
+  "Class Match": {
+    "prefix": "class match",
+    "body": "class match \"regex:${1:.*pattern}\"",
+    "description": "Subject expression: all classes whose fully-qualified name matches a regex"
   }
 }

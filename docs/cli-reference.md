@@ -2,6 +2,22 @@
 
 Complete reference for every `ade` command and flag. For a guided walkthrough of installing the tool, writing a rule, and wiring it into a pipeline, see the [user guide](user-guide.md). For an introduction to the project, see the [README](../README.md).
 
+## Shell auto-completion
+
+ADE supports shell auto-completion for `bash`, `fish`, `powershell`, and `zsh`. Run the completion command with `--help` to see the installation instructions for your shell:
+
+```bash
+ade completion powershell --help
+```
+
+For example, to enable auto-completion in PowerShell, add the following line to your [PowerShell profile](https://learn.microsoft.com/en-us/powershell/module/microsoft.powershell.core/about/about_profiles?view=powershell-7.5):
+
+```powershell
+ade completion powershell | Out-String | Invoke-Expression
+```
+
+Other shells follow the same pattern: run `ade completion <shell> --help` for the shell-specific instructions.
+
 ## Global flags
 
 | Flag              | Description                                                                                                |
@@ -16,11 +32,12 @@ Validate one or more rule files for syntax and semantic errors. No plugin is inv
 ade validate -i rules/0001.rule
 ade validate -i rules/                       # every .rule file in a directory
 ade validate -i rules/0001.rule -i rules/0002.rule
+ade validate                                 # uses defaults.input from config
 ```
 
-| Flag            | Description                                                                       |
-| --------------- | --------------------------------------------------------------------------------- |
-| `-i`, `--input` | Path to a `.rule` file or a directory of `.rule` files (required, repeatable).    |
+| Flag            | Description                                                                                              |
+| --------------- | -------------------------------------------------------------------------------------------------------- |
+| `-i`, `--input` | Path to a `.rule` file or a directory of `.rule` files (repeatable). Falls back to `defaults.input`. |
 
 ## `ade compile`
 
@@ -31,10 +48,10 @@ ade compile -i docs/0001.rule -p archgo
 ade compile -i docs/        -p archgo
 ```
 
-| Flag             | Description                                                                                  |
-| ---------------- | -------------------------------------------------------------------------------------------- |
-| `-i`, `--input`  | Path to a `.rule` file or a directory of `.rule` files. Falls back to `defaults.compile.input`. |
-| `-p`, `--plugin` | Plugin name or path (see [Plugin resolution](#plugin-resolution)). Falls back to `defaults.compile.plugin`. |
+| Flag             | Description                                                                                                                                   |
+| ---------------- | --------------------------------------------------------------------------------------------------------------------------------------------- |
+| `-i`, `--input`  | Path to a `.rule` file or a directory of `.rule` files. Falls back to `defaults.compile.input`, then `defaults.input`. |
+| `-p`, `--plugin` | Plugin name or path (see [Plugin resolution](#plugin-resolution)). Falls back to `defaults.compile.plugin`.                                    |
 
 Plugin-specific settings (e.g. the output directory) are read from `plugin_configs.<prefix>.*` in the active config file and forwarded to the plugin in `rule.Spec.PluginConfig`. See [Plugin configuration](#plugin-configuration).
 
@@ -47,10 +64,10 @@ ade verify -i docs/0003.rule -p fscheck
 ade verify -i docs/         -p fscheck
 ```
 
-| Flag             | Description                                                                                |
-| ---------------- | ------------------------------------------------------------------------------------------ |
-| `-i`, `--input`  | Path to a `.rule` file or a directory of `.rule` files. Falls back to `defaults.verify.input`. |
-| `-p`, `--plugin` | Plugin name or path (see [Plugin resolution](#plugin-resolution)). Falls back to `defaults.verify.plugin`. |
+| Flag             | Description                                                                                                                                  |
+| ---------------- | -------------------------------------------------------------------------------------------------------------------------------------------- |
+| `-i`, `--input`  | Path to a `.rule` file or a directory of `.rule` files. Falls back to `defaults.verify.input`, then `defaults.input`. |
+| `-p`, `--plugin` | Plugin name or path (see [Plugin resolution](#plugin-resolution)). Falls back to `defaults.verify.plugin`.                                   |
 
 Plugin-specific settings (e.g. the root directory for resolving path patterns) are read from `plugin_configs.<prefix>.*` and forwarded to the plugin. See [Plugin configuration](#plugin-configuration).
 
@@ -175,7 +192,7 @@ ade plugin update --all                     # update every remotely installed pl
 
 ## `ade config`
 
-Manage default values for command flags and plugin-specific configuration. By default the project config (`.ade.yaml` in the current directory) is targeted; pass `--global` to target the user-level config, or `--file <path>` to target a specific file.
+Manage default values for command flags and plugin-specific configuration. By default the project config (`.ade.yaml` in the current directory) is targeted; pass `--global` to target the user-level config, or `--config <path>` to target a specific file.
 
 ```sh
 ade config set   defaults.compile.plugin archgo
@@ -184,25 +201,27 @@ ade config unset defaults.compile.plugin
 ade config list
 ```
 
-| Flag             | Description                                                                  |
-| ---------------- | ---------------------------------------------------------------------------- |
-| `--global`       | Target the global config instead of the project config.                      |
-| `--file <path>`  | Target a specific config file. Mutually exclusive with `--global`.           |
+| Flag             | Description                                             |
+| ---------------- | ------------------------------------------------------- |
+| `--global`       | Target the global config instead of the project config. |
 
 ### Configurable keys
 
 | Key                                  | Purpose                                                                                                                |
 | ------------------------------------ | ---------------------------------------------------------------------------------------------------------------------- |
+| `defaults.input`                     | Shared default input path for `ade compile`, `ade verify`, and `ade validate`. Overridden by the command-specific keys below. |
 | `defaults.compile.plugin`            | Default value for `ade compile --plugin`.                                                                              |
-| `defaults.compile.input`             | Default value for `ade compile --input`.                                                                               |
+| `defaults.compile.input`             | Default value for `ade compile --input`. Takes priority over `defaults.input`.                                         |
 | `defaults.verify.plugin`             | Default value for `ade verify --plugin`.                                                                               |
-| `defaults.verify.input`              | Default value for `ade verify --input`.                                                                                |
+| `defaults.verify.input`              | Default value for `ade verify --input`. Takes priority over `defaults.input`.                                          |
 | `plugin_locations.<name>`            | Path of an installed plugin binary. Written automatically by `ade plugin install`; can also be edited by hand.         |
 | `plugin_sources.<name>`              | GitHub module URL the plugin was installed from. Written automatically; consumed by `ade plugin update` and `list`.    |
 | `plugin_versions.<name>`             | Release tag recorded at install time. Written automatically; displayed by `ade plugin list`.                           |
 | `plugin_configs.<prefix>.<key>`      | Plugin-specific setting forwarded to the plugin in `rule.Spec.PluginConfig`. See [Plugin configuration](#plugin-configuration). |
 
 `ade config set` rejects any key that is not in this list or under the `plugin_configs.` prefix.
+
+When setting `defaults.input` while `defaults.compile.input` or `defaults.verify.input` is already configured (or vice versa), `ade config set` prints an informational note explaining which value takes priority.
 
 ### Configuration hierarchy
 
@@ -217,10 +236,11 @@ ADE uses [Viper](https://pkg.go.dev/github.com/spf13/viper) to merge two config 
 
 2. Project-level config: `.ade.yaml` in the current working directory, merged on top of the global config. Values defined here override the global config.
 
-Pass `--config <path>` on any command to bypass both files and use a specific config file instead:
+Pass `--config <path>` on any command to load a specific config file, merged on top of the global config. This works for both enforcement commands and `config` subcommands:
 
 ```sh
 ade compile --config ./my-config.yaml -p archgo -i ./rules
+ade config set defaults.verify.plugin fscheck --config ./my-config.yaml
 ```
 
 ### Plugin configuration
@@ -252,6 +272,7 @@ Print every configurable default and every `plugin_configs.*` entry merged into 
 
 ```
 KEY                                          VALUE                       SOURCE
+defaults.input                                                           [not set]
 defaults.compile.plugin                      archgo                      [project]
 defaults.compile.input                       ./docs/adr                  [global]
 defaults.verify.plugin                                                   [not set]
@@ -260,7 +281,7 @@ plugin_configs.archgo.output-dir             ./internal/archtests        [projec
 plugin_configs.fscheck.root-dir              ./src                       [project]
 ```
 
-The `SOURCE` column tags each value as `[project]`, `[global]`, or `[not set]`, making it explicit where a value comes from after the merge.
+The `SOURCE` column tags each value as `[project]`, `[global]`, `[custom]`, or `[not set]`, making it explicit where a value comes from after the merge.
 
 ### Full configuration example
 
@@ -286,6 +307,17 @@ plugin_configs:
     assembly-prefixes: CompanyName.MyApp.
   fscheck:
     root-dir: ./src
+defaults:
+  input: ./docs/adr
+  compile:
+    plugin: archgo
+  verify:
+    plugin: fscheck
+```
+
+Or, if compile and verify use different input paths, set the command-specific keys:
+
+```yaml
 defaults:
   compile:
     plugin: archgo

@@ -3,10 +3,7 @@ package config
 
 import "github.com/spf13/cobra"
 
-var (
-	globalFlag     bool
-	configFileFlag string
-)
+var globalFlag bool
 
 // New returns the `config` parent command with its subcommands attached.
 func New() *cobra.Command {
@@ -30,7 +27,7 @@ Plugin configuration (open namespace, prefix must match the plugin's config_pref
 Examples:
   ade config set defaults.compile.plugin archgo
   ade config set defaults.compile.input ./docs/adr --global
-  ade config set plugin_configs.netarchtest.test-project ./src/Tests/ArchTests/Project.csproj --file ./ade.moduleA.yaml
+  ade config set plugin_configs.netarchtest.test-project ./src/Tests/ArchTests/Project.csproj --config ./custom.yaml
   ade config get defaults.compile.plugin
   ade config unset defaults.compile.plugin
   ade config set plugin_configs.fscheck.root-dir ./src
@@ -39,9 +36,6 @@ Examples:
 
 	cmd.PersistentFlags().BoolVar(&globalFlag, "global", false,
 		"target the global config instead of the project config")
-	cmd.PersistentFlags().StringVar(&configFileFlag, "file", "",
-		"target a specific config file instead of the default project config")
-	cmd.MarkFlagsMutuallyExclusive("global", "file")
 
 	cmd.AddCommand(setCmd, getCmd, unsetCmd, listCmd)
 	return cmd

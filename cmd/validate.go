@@ -3,7 +3,9 @@ package cmd
 import (
 	"fmt"
 	"os"
+	"strings"
 
+	"github.com/phi42/ad-enforcement-tool/internal/config"
 	"github.com/phi42/ad-enforcement-tool/internal/dsl"
 	"github.com/phi42/ad-enforcement-tool/internal/runner"
 	"github.com/spf13/cobra"
@@ -17,17 +19,20 @@ var validateCmd = &cobra.Command{
 This command parses the rule files and reports any syntax or semantic errors
 without actually executing any plugin.
 
+When no -i flag is given, the value of defaults.input in the active config is
+used as the input path.
+
 Examples:
   ade validate -i rules/0001.rule
   ade validate -i rules/
-  ade validate -i rules/0001.rule -i rules/0002.rule`,
+  ade validate -i rules/0001.rule -i rules/0002.rule
+  ade validate                    # uses defaults.input from config`,
 	RunE: validateRun,
 }
 
 func init() {
 	validateCmd.Flags().StringArrayP("input", "i", []string{},
-		"input path(s) containing rule files (required, can be file or directory)")
-	_ = validateCmd.MarkFlagRequired("input")
+		"input path(s) containing rule files (can be file or directory; falls back to "+config.DefaultInput+" in config)")
 }
 
 // validateRun expands every --input path into its constituent .rule files,
@@ -39,7 +44,11 @@ func validateRun(cmd *cobra.Command, args []string) error {
 		return fmt.Errorf("reading input flag: %w", err)
 	}
 	if len(inputs) == 0 {
-		return fmt.Errorf("at least one input path required")
+		fallback := config.Viper().GetString(config.DefaultInput)
+		if strings.TrimSpace(fallback) == "" {
+			return fmt.Errorf("at least one --input path is required (or set %s in config)", config.DefaultInput)
+		}
+		inputs = []string{fallback}
 	}
 
 	var ruleFiles []string

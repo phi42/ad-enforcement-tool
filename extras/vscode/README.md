@@ -5,16 +5,20 @@ This extension provides syntax highlighting for Architecture Decision Rule (`.ru
 ## Features
 
 - Syntax highlighting across four distinct token groups (see [Color Scheme](#color-scheme) below)
-- IntelliSense completion: type keywords and press Ctrl+Space for suggestions
-- Code snippets for common patterns:
+- Code snippets for common patterns: type a prefix and press `Ctrl+Space` for suggestions
   - `adr`: ADR header
   - `code`, `file`, `custom`: rule block templates
-  - `component`, `class`, `interface`, `path`: selectors
-  - `must not depend`, `must only depend`: dependency rule templates
-  - `path must exist`, `path must contain`: filesystem check templates
+  - `selector component`, `selector class`, `selector interface`, `selector path`: selector declarations
+  - `severity`: severity setting
+  - `must not depend on`, `must only depend on`: dependency rule templates
+  - `must only be accessed by`, `must be acyclic`: access and cycle rule templates
+  - `path must exist`, `path must not exist`, `path must contain`, `path must not contain`: file system rule templates
   - `must implement`, `must extend`: type relationship templates
-  - `component match`, `class match`: pattern matching
-  - `exclude class implementing`, `exclude class`: exclusions
+  - `must be annotated with`, `must not be annotated with`: annotation rule templates
+  - `must be in`: location rule template
+  - `must match`: naming pattern rule template
+  - `component match`, `class match`: pattern-matched subject expressions
+  - `exclude class implementing`, `exclude class`, `exclude`: exclusion templates
 - String highlighting with escape sequence support
 - Comment support (`#`)
 - Auto-closing pairs for quotes and brackets

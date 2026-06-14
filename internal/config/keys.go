@@ -27,6 +27,8 @@ const (
 
 // Default-value keys that can be set with `ade config set`.
 const (
+	DefaultInput = "defaults.input"
+
 	DefaultCompilePlugin = "defaults.compile.plugin"
 	DefaultCompileInput  = "defaults.compile.input"
 	DefaultVerifyPlugin  = "defaults.verify.plugin"
@@ -37,6 +39,7 @@ const (
 // for default values. Plugin-specific keys (PluginConfigsPrefix + ...) are
 // allowed in addition to these but are open-ended and not enumerated here.
 var KnownDefaults = []string{
+	DefaultInput,
 	DefaultCompilePlugin,
 	DefaultCompileInput,
 	DefaultVerifyPlugin,

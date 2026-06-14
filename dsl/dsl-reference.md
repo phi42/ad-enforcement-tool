@@ -53,6 +53,8 @@ Define reusable references:
 | `interface` | Interfaces     | `"IRepository"`    |
 | `path`      | Files/folders  | `"src/**/*.cs"`    |
 
+For `class` and `interface` selectors, always use the fully qualified name (e.g., `"MyApp.Domain.Entities.BaseEntity"` rather than just `"BaseEntity"`). Plain short names are technically valid DSL, but plugins resolve them against namespaces in the target project. Without the full namespace, a plugin may match the wrong type, match nothing at all, or fail to generate a compilable test file because it cannot resolve the necessary import.
+
 Selector names must start with an uppercase letter (`A`-`Z`). Subsequent characters may be letters, digits, or underscores.
 
 Selectors cannot be named after any of the reserved keywords: `must`, `not`, `only`, `depend`, `exist`, `contain`, `implement`, `interface`, `match`, `exclude`, `class`, `component`, `path`, `severity`, `error`, `warning`, `extend`, `accessed`, `annotated`, `acyclic`, `public`, `internal`, `private`, `abstract`, `sealed`, `static`, `in`.

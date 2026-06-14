@@ -4,6 +4,8 @@ This guide walks through using ADE end-to-end: installing the `ade` binary, inst
 
 If you are looking for a short reference of every flag, see the [CLI reference](cli-reference.md). For the DSL grammar, see the [DSL reference](../dsl/dsl-reference.md). To author your own plugin, see the [plugin developer guide](plugin-developer-guide.md).
 
+> Note: If you installed the combined `adg` tool instead of the standalone `ade` binary, replace every `ade` command in this guide with `adg enforce`. For example, `ade validate -i rules/` becomes `adg enforce validate -i rules/`. Alternatively, you can define a shell alias so that `ade` expands to `adg enforce`: in bash or zsh add `alias ade='adg enforce'` to your shell profile, or in PowerShell add `Set-Alias ade { adg enforce @args }` to your `$PROFILE`.
+
 ## Step 1: Install ade
 
 You can install `ade` either through the Go toolchain or from a release archive.
@@ -130,11 +132,27 @@ Pass a directory to validate every `.rule` file under it:
 ade validate -i docs/adr/
 ```
 
+If `defaults.input` is configured, you can omit `-i` entirely:
+
+```bash
+ade validate
+```
+
 For the full DSL grammar (selectors, exclusions, naming, visibility, annotations, custom blocks, and so on) see the [DSL reference](../dsl/dsl-reference.md).
 
 ## Step 4: Set defaults (optional)
 
-To avoid passing `-p` and `-i` on every invocation, save them as defaults in `.ade.yaml`:
+To avoid passing `-p` and `-i` on every invocation, save them as defaults in `.ade.yaml`.
+
+If `compile`, `verify`, and `validate` all read from the same directory, set one shared input default:
+
+```bash
+ade config set defaults.input          ./docs/adr
+ade config set defaults.compile.plugin archgo
+ade config set defaults.verify.plugin  fscheck
+```
+
+If the two commands need different input paths, use the command-specific keys instead (they take priority over `defaults.input`):
 
 ```bash
 ade config set defaults.compile.plugin archgo
@@ -143,7 +161,11 @@ ade config set defaults.verify.plugin  fscheck
 ade config set defaults.verify.input   ./docs/adr
 ```
 
+When you set a command-specific input key while `defaults.input` is already configured (or vice versa), `ade config set` prints a note explaining which value takes priority.
+
 Project-level values land in `.ade.yaml` next to your code. Add `--global` to write to the user-level config instead. Use `ade config list` to see every configured key, its effective value, and where it came from.
+
+If you need a config file at a custom path (for example, to keep separate configs for different modules), pass `--config <path>` to any command. ADE merges the global config first (so plugin installations are always available) and then merges your custom file on top. The same flag works for `config` subcommands, so `ade config set <key> <value> --config ./my-config.yaml` writes into that file directly.
 
 The full configuration model and a worked example are in the [CLI reference](cli-reference.md#ade-config).
 

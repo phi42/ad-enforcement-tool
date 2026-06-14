@@ -7,15 +7,16 @@ import (
 )
 
 // ResolveConfigPath returns the file path to be used by config set/unset/get.
-// If configFile is non-empty it takes precedence (resolved to an absolute
-// path). If global is true the global config path is returned. Otherwise the
-// project config in the current working directory is used.
-func ResolveConfigPath(configFile string, global bool) (string, error) {
-	if configFile != "" {
-		return filepath.Abs(configFile)
-	}
+// Priority order:
+//  1. --global flag → global config path
+//  2. --config flag (CustomConfigFile) → custom file from the current command
+//  3. project config (.ade.yaml in cwd)
+func ResolveConfigPath(global bool) (string, error) {
 	if global {
 		return GlobalConfigPath()
+	}
+	if custom := CustomConfigFile(); custom != "" {
+		return filepath.Abs(custom)
 	}
 	cwd, err := os.Getwd()
 	if err != nil {
@@ -25,13 +26,13 @@ func ResolveConfigPath(configFile string, global bool) (string, error) {
 }
 
 // ResolveConfigScope returns the human-readable scope label printed alongside
-// set/unset confirmations, e.g. "[project]", "[global]", or the file path.
-func ResolveConfigScope(configFile string, global bool) string {
-	if configFile != "" {
-		return "[" + configFile + "]"
-	}
+// set/unset confirmations: "[project]", "[global]", or "[custom]".
+func ResolveConfigScope(global bool) string {
 	if global {
 		return "[global]"
+	}
+	if CustomConfigFile() != "" {
+		return "[custom]"
 	}
 	return "[project]"
 }

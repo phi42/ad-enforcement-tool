@@ -79,7 +79,10 @@ func (m Mode) resolveInput(cmd *cobra.Command, v *viper.Viper) (string, error) {
 		input = v.GetString(m.DefaultInputKey)
 	}
 	if strings.TrimSpace(input) == "" {
-		return "", fmt.Errorf("--input is required (pass as flag or set %s in config)", m.DefaultInputKey)
+		input = v.GetString(config.DefaultInput)
+	}
+	if strings.TrimSpace(input) == "" {
+		return "", fmt.Errorf("--input is required (pass as flag or set %s or %s in config)", m.DefaultInputKey, config.DefaultInput)
 	}
 	return input, nil
 }

@@ -380,6 +380,12 @@ func (v *irVisitor) applyContain(c *parser.ContainPhraseContext, mod modality, i
 
 func (v *irVisitor) applyImplement(c *parser.ImplementPhraseContext, mod modality, ir *rule.Rule) {
 	if t := v.visitTargetExpr(c.TargetExpr()); t != nil {
+		// The grammar's optional INTERFACE? keyword is consumed as a filler word
+		// before targetExpr is parsed, so inline targets lose their Kind. Fill it
+		// in from context: an implement target is always an interface.
+		if t.IsInline && t.Kind == rule.SelectorKind_SELECTOR_UNSPECIFIED {
+			t.Kind = rule.SelectorKind_SELECTOR_INTERFACE
+		}
 		ir.Targets = append(ir.Targets, t)
 	}
 	switch mod {
@@ -392,6 +398,12 @@ func (v *irVisitor) applyImplement(c *parser.ImplementPhraseContext, mod modalit
 
 func (v *irVisitor) applyExtend(c *parser.ExtendPhraseContext, mod modality, ir *rule.Rule) {
 	if t := v.visitTargetExpr(c.TargetExpr()); t != nil {
+		// The grammar's optional CLASS? keyword is consumed as a filler word
+		// before targetExpr is parsed, so inline targets lose their Kind. Fill it
+		// in from context: an extend target is always a class.
+		if t.IsInline && t.Kind == rule.SelectorKind_SELECTOR_UNSPECIFIED {
+			t.Kind = rule.SelectorKind_SELECTOR_CLASS
+		}
 		ir.Targets = append(ir.Targets, t)
 	}
 	switch mod {
@@ -530,7 +542,7 @@ func (v *irVisitor) visitExcludeStmt(ctx parser.IExcludeStmtContext) *rule.Exclu
 		}
 	case *parser.ExcludePatternContext:
 		return &rule.Exclusion{
-			Kind:  rule.ExcludeKind_EXCLUDE_CLASS,
+			Kind:  rule.ExcludeKind_EXCLUDE_PATH,
 			Value: unquote(c.STRING().GetText()),
 		}
 	}

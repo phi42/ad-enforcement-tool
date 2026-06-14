@@ -19,13 +19,13 @@ func unsetRun(cmd *cobra.Command, args []string) error {
 	if err := cfg.ValidateKey(key); err != nil {
 		return err
 	}
-	cfgPath, err := cfg.ResolveConfigPath(configFileFlag, globalFlag)
+	cfgPath, err := cfg.ResolveConfigPath(globalFlag)
 	if err != nil {
 		return fmt.Errorf("resolving config path: %w", err)
 	}
 	if err := cfg.UnsetKey(cfgPath, key); err != nil {
 		return fmt.Errorf("unsetting config value: %w", err)
 	}
-	fmt.Printf("Unset %s %s\n", key, cfg.ResolveConfigScope(configFileFlag, globalFlag))
+	fmt.Printf("Unset %s %s\n", key, cfg.ResolveConfigScope(globalFlag))
 	return nil
 }
