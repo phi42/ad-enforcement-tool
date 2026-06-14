@@ -30,9 +30,9 @@ Validate one or more rule files for syntax and semantic errors. No plugin is inv
 
 ```sh
 ade validate -i rules/0001.rule
-ade validate -i rules/                       # every .rule file in a directory
+ade validate -i rules/                                # every .rule file in a directory
 ade validate -i rules/0001.rule -i rules/0002.rule
-ade validate                                 # uses defaults.input from config
+ade validate                                          # uses defaults.input from config
 ```
 
 | Flag            | Description                                                                                              |
@@ -45,7 +45,7 @@ Compile rules into an executable test artifact using a plugin (e.g. an arch-go o
 
 ```sh
 ade compile -i docs/0001.rule -p archgo
-ade compile -i docs/        -p archgo
+ade compile -i docs/          -p archgo
 ```
 
 | Flag             | Description                                                                                                                                   |
@@ -61,13 +61,13 @@ Execute rules immediately against the target and exit non-zero if any `error`-se
 
 ```sh
 ade verify -i docs/0003.rule -p fscheck
-ade verify -i docs/         -p fscheck
+ade verify -i docs/          -p fscheck
 ```
 
-| Flag             | Description                                                                                                                                  |
-| ---------------- | -------------------------------------------------------------------------------------------------------------------------------------------- |
+| Flag             | Description                                                                                                           |
+| ---------------- | --------------------------------------------------------------------------------------------------------------------- |
 | `-i`, `--input`  | Path to a `.rule` file or a directory of `.rule` files. Falls back to `defaults.verify.input`, then `defaults.input`. |
-| `-p`, `--plugin` | Plugin name or path (see [Plugin resolution](#plugin-resolution)). Falls back to `defaults.verify.plugin`.                                   |
+| `-p`, `--plugin` | Plugin name or path (see [Plugin resolution](#plugin-resolution)). Falls back to `defaults.verify.plugin`.            |
 
 Plugin-specific settings (e.g. the root directory for resolving path patterns) are read from `plugin_configs.<prefix>.*` and forwarded to the plugin. See [Plugin configuration](#plugin-configuration).
 

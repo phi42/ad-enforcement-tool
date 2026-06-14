@@ -52,7 +52,9 @@ Enforcement is delegated to plugins, separate executables that receive the parse
 
 To author your own plugin, copy one of the starter templates in [`extras/plugin-templates/`](extras/plugin-templates/) (Go, C#, or Java) and follow the [plugin developer guide](docs/plugin-developer-guide.md).
 
-## Embedding the `cmd` package
+> If you have developed a plugin that you'd like to share, feel free to open a PR adding it to the list above.
+
+## Import ADE as a go module
 
 The [`cmd`](cmd/) package exposes the full enforcement command tree as a single `*cobra.Command`. Other tools can register it directly:
 
@@ -62,7 +64,7 @@ import adecmd "github.com/phi42/ad-enforcement-tool/cmd"
 rootCmd.AddCommand(adecmd.NewEnforceCommand())
 ```
 
-This is how [ad-guidance-tool](https://github.com/adr/ad-guidance-tool) integrates the enforcement commands under `adg enforce`. The protobuf types (`rule.Spec`, `rule.Rule`, ...) used for plugin communication are also exposed as a public Go package at [`rule`](rule/), and the DSL reference and a `Validate` shorthand are exposed by the [`dsl`](dsl/) package, which embeds [`dsl/dsl-reference.md`](dsl/dsl-reference.md) as `dsl.Reference`.
+This is how [ad-guidance-tool](https://github.com/adr/ad-guidance-tool) integrates the enforcement commands under `adg enforce`. The protobuf types used for plugin communication are also exposed as a public Go package at [`rule`](rule/), and the DSL reference is exposed by the [`dsl`](dsl/) package.
 
 ## Documentation
 
